@@ -69,6 +69,26 @@ if sseC>sseB+1e-4
  warning('Reversible fit worse than irreversible. Check convergence/search bounds.');
 end
 
+%% 2D. Fixed-reference PK; fit only shared kBF and beta.
+% Exact growth doubles from full run 43100077010 (commit 39cf75b).
+% Reference PK values remain the original cfg values, not experimental estimates.
+gD=[0.031094959444983555,35143.615284616222];
+fixedNames={'kEF';'kFE';'kFB';'VI';'VE';'kp';'theta'};
+fixedValues=[cfg.kEF;cfg.oldFE;cfg.oldFB;cfg.VI;cfg.VE;gD'];
+fixedUnits={'h^-1';'h^-1';'h^-1';'uL';'uL';'h^-1';'cells'};
+fixedSources=[repmat({'6325d45:run_joint_pkpd.m cfg'},5,1);...
+ repmat({'full run 43100077010 control fit, commit 39cf75b'},2,1)];
+fixedTable=table(fixedNames,fixedValues,fixedUnits,fixedSources,...
+ 'VariableNames',{'parameter','fixed_value','unit','source'});
+writetable(fixedTable,fullfile(out,'model_d_fixed_parameters.csv'));
+funD=@(x) loss([cfg.oldFE,cfg.oldFB,x(1),x(2)],cs,cfg,gD);
+[xD,sseD,runsD]=multifit(funD,[0.005,5e-4],lo([3,4]),hi([3,4]),...
+ nStarts,'fixed reference D',checkpointDir);
+pD=[cfg.oldFE,cfg.oldFB,xD];
+writeRuns(runsD,{'kBF','beta'},out,'model_d');
+save(fullfile(out,'model_d_fit.mat'),'pD','sseD','runsD','gD','fixedTable','cfg','C','cs');
+profileD=profileFixedPK(pD,sseD,cs,cfg,gD,lo,hi,out);
+
 %% 3. Exact non-identifiability demonstration, not a confidence interval.
 % E=beta*CB satisfies E''+a*E'+b*E=c*CE for zero initial intracellular drug:
 % a=kFE+kFB+kBF; b=kFE*kBF; c=beta*kEF*(VE/VI)*kFB.
@@ -81,8 +101,9 @@ for j=1:size(eq,1)
 end
 
 %% 4. Parameter and fit summaries. 'Representative' does NOT mean unique.
-model={'Old PK, direct PD';'Joint irreversible';'Joint reversible'};
-P=[pA;pB;pC];summary=table(model,P(:,1),P(:,2),P(:,3),P(:,4),[sseA;sseB;sseC],...
+model={'Old PK, direct PD';'Joint irreversible';'Joint reversible';'Fixed reference D'};
+P=[pA;pB;pC;pD];modelGrowth=[g;g;g;gD];
+summary=table(model,P(:,1),P(:,2),P(:,3),P(:,4),[sseA;sseB;sseC;sseD],...
  'VariableNames',{'model','kFE','kFB','kBF','beta','scaled_SSE'});
 disp(summary);
 growth=table(g(1),g(2),gSSE,'VariableNames',{'kp','theta','scaled_SSE'});
@@ -106,21 +127,21 @@ f=figure('Visible','off','Color','w','Position',[80,80,1100,760]);
 subplot(2,2,1);tt=linspace(0,max(C(:,1)),300)';
 plot(C(:,1),C(:,2),'ko',tt,logistic(g,tt,C(1,2)),'k-','LineWidth',1.4);
 title('SUM-149PT untreated');xlabel('Hours');ylabel('Cell count');grid on;
-cols=[0.5,0.5,0.5;0.85,0.25,0.15;0.1,0.35,0.85];styles={':','--','-'};
+cols=[0.5,0.5,0.5;0.85,0.25,0.15;0.1,0.35,0.85;0.1,0.6,0.3];styles={':','--','-','-.'};
 predRows=[];resRows=[];byDose=[];
 for j=1:numel(cs)
  c=cs(j);tt=unique([linspace(0,max(c.t),350)';c.wash]);
  subplot(2,2,j+1);plot(c.t,c.y,'ko','MarkerSize',5);hold on;
- for m=1:3
-  Y=simulate(P(m,:),tt,c,cfg,g);
+ for m=1:4
+  Y=simulate(P(m,:),tt,c,cfg,modelGrowth(m,:));
   plot(tt,Y(:,3),styles{m},'Color',cols(m,:),'LineWidth',1.5);
   predRows=[predRows;[repmat([m,c.dose],numel(tt),1),tt,Y]]; %#ok<AGROW>
-  Yobs=simulate(P(m,:),c.t,c,cfg,g);rr=Yobs(:,3)-c.y;
+  Yobs=simulate(P(m,:),c.t,c,cfg,modelGrowth(m,:));rr=Yobs(:,3)-c.y;
   resRows=[resRows;[repmat([m,c.dose],numel(c.t),1),c.t,c.y,Yobs(:,3),rr,rr/max(c.y)]]; %#ok<AGROW>
   byDose=[byDose;[m,c.dose,sum((rr/max(c.y)).^2),sqrt(mean(rr.^2))]]; %#ok<AGROW>
  end
  title(sprintf('SUM-149PT, %g nM, 6 h',c.dose));xlabel('Hours from treatment start');ylabel('Cell count');grid on;
- legend({'Digitized points','Old PK/direct PD','Joint irreversible','Joint reversible'},'Location','best');
+ legend({'Digitized points','Old PK/direct PD','Joint irreversible','Joint reversible','Fixed reference D'},'Location','best');
 end
 saveas(f,fullfile(out,'01_cell_fits.png'));close(f);
 fprintf('[%s] Saved 01_cell_fits.png (total %.1f s)\n',datestr(now,30),toc(runTimer));
@@ -133,7 +154,7 @@ writetable(array2table(byDose,'VariableNames',{'model_id','dose_nM','scaled_SSE'
 f=figure('Visible','off','Color','w','Position',[80,80,1100,360]);
 for j=1:3
  subplot(1,3,j);hold on;
- for m=1:3
+ for m=1:4
   Q=resRows(resRows(:,1)==m & resRows(:,2)==cs(j).dose,:);
   plot(Q(:,3),Q(:,7),'o-','Color',cols(m,:));
  end
@@ -179,8 +200,9 @@ fprintf('These individual PK rates are representatives, NOT unique estimates.\n'
 fprintf('Old simulated PK was NOT included in the loss. No held-out validation.\n');
 results=struct('config',cfg,'growth',g,'summary',summary,'equivalent_sets',eq,...
  'combinations',abc,'control_runs',gRuns,'max_equivalent_N_difference',maxDelta,...
- 'elapsed_seconds',toc(runTimer),'seed',42,'matlab_version',version);
-save(fullfile(out,'joint_fit.mat'),'results','C','cs','runsA','runsB','runsC');
+ 'elapsed_seconds',toc(runTimer),'seed',42,'matlab_version',version,...
+ 'model_d_growth',gD,'model_d_fixed',fixedTable,'model_d_profile',profileD);
+save(fullfile(out,'joint_fit.mat'),'results','C','cs','runsA','runsB','runsC','runsD');
 fprintf('[%s] COMPLETE in %.1f s. Results saved in %s\n',datestr(now,30),toc(runTimer),out);
 end
 
@@ -295,4 +317,73 @@ for j=1:3
  q=Q{j};cs(j).dose=dose(j);cs(j).wash=6;
  cs(j).t=(q(:,1)-172)*200/82.5;cs(j).y=(zero(j)-q(:,2))*10000/82.5;
 end
+end
+
+function profile=profileFixedPK(pD,sseD,cs,cfg,g,lo,hi,out)
+% Conditional SSE profile: re-optimize beta at EVERY fixed kBF.
+% kBF=0 is an explicit irreversible reference, outside the positive fit bounds.
+profileDir=fullfile(out,'profile_checkpoints');
+if ~exist(profileDir,'dir'),mkdir(profileDir);end
+xs=unique([0;logspace(log10(lo(3)),log10(hi(3)),81)';...
+ logspace(log10(max(lo(3),pD(3)/3)),log10(min(hi(3),pD(3)*3)),41)';pD(3)]);
+rows=zeros(0,8);allCandidates=cell(numel(xs),1);
+for j=1:numel(xs)
+ timer=tic;
+ fun=@(beta) loss([cfg.oldFE,cfg.oldFB,xs(j),beta],cs,cfg,g);
+ [beta,sse,flag,evals,candidates]=profileBeta(fun,lo(4),hi(4),pD(4));
+ nearBeta=log(beta/lo(4))<0.02 || log(hi(4)/beta)<0.02;
+ rows(end+1,:)=[xs(j),beta,sse,flag,evals,nearBeta,toc(timer),j]; %#ok<AGROW>
+ allCandidates{j}=candidates;
+ point=rows(end,:);kBF=xs(j);
+ save(fullfile(profileDir,sprintf('kbf_%03d.mat',j)),...
+  'kBF','beta','sse','flag','evals','candidates','point');
+ partial=array2table(rows,'VariableNames',{'kBF','beta','scaled_SSE',...
+  'exitflag','function_evaluations','beta_near_bound','elapsed_seconds','point_id'});
+ writetable(partial,fullfile(out,'model_d_kbf_profile.csv'));
+ fprintf('[%s] D profile %d/%d: kBF=%.7g, beta=%.7g, SSE=%.9g, flag=%d, %.1f s\n',...
+  datestr(now,30),j,numel(xs),kBF,beta,sse,flag,toc(timer));
+end
+profile=partial;profile.delta_SSE=profile.scaled_SSE-min(profile.scaled_SSE);
+profile.relative_increase=profile.delta_SSE/min(profile.scaled_SSE);
+writetable(profile,fullfile(out,'model_d_kbf_profile.csv'));
+save(fullfile(out,'model_d_kbf_profile.mat'),'profile','allCandidates','pD','sseD','g','cfg');
+if abs(min(profile.scaled_SSE)-sseD)>1e-4
+ warning('PKPD:ProfileMismatch','Profile and joint D optimum differ; inspect optimization.');
+end
+f=figure('Visible','off','Color','w','Position',[80,80,1100,400]);
+positive=profile.kBF>0;
+subplot(1,2,1);semilogx(profile.kBF(positive),profile.scaled_SSE(positive),'o-');
+hold on;plot(pD(3),sseD,'rp','MarkerSize',12);grid on;
+xlabel('Fixed kBF (h^{-1})');ylabel('Profile scaled SSE');
+title('D: beta re-optimized; fixed-reference conditional profile');
+subplot(1,2,2);loglog(profile.kBF(positive),profile.beta(positive),'o-');grid on;
+xlabel('Fixed kBF (h^{-1})');ylabel('Optimized beta');
+title('No likelihood calibration or confidence interval');
+saveas(f,fullfile(out,'05_model_d_kbf_profile.png'));close(f);
+end
+
+function [bestBeta,bestSSE,bestFlag,evals,candidates]=profileBeta(fun,lower,upper,guess)
+% Scan log(beta), refine each detected local minimum, and check endpoints.
+% The objective and ODE tolerances are unchanged; no Optimization Toolbox.
+zs=unique([linspace(log(lower),log(upper),25),log(guess)]);
+evals=0;vs=zeros(size(zs));
+for k=1:numel(zs),vs(k)=objective(zs(k));end
+[bestSSE,idx]=min(vs);bestBeta=exp(zs(idx));bestFlag=0;
+if idx==1 || idx==numel(zs),bestFlag=2;end % Explicitly tested bound, not optimizer flag.
+candidates=[zs(:),vs(:),zeros(numel(zs),1)];
+local=find(vs(2:end-1)<=vs(1:end-2) & vs(2:end-1)<=vs(3:end) & ...
+ (vs(2:end-1)<vs(1:end-2) | vs(2:end-1)<vs(3:end)))+1;
+ids=unique([idx,local]);
+opts=optimset('Display','off','MaxIter',650,'MaxFunEvals',1800,'TolX',1e-5);
+for k=ids
+ left=max(1,k-1);right=min(numel(zs),k+1);
+ [z,v,flag]=fminbnd(@objective,zs(left),zs(right),opts);
+ candidates(end+1,:)=[z,v,flag]; %#ok<AGROW>
+ if v<bestSSE,bestSSE=v;bestBeta=exp(z);bestFlag=flag;end
+end
+if ~isfinite(bestSSE) || bestSSE>=1e9,error('PKPD:ProfileFit','No valid beta fit.');end
+ function value=objective(z)
+  evals=evals+1;
+  value=boundedLoss(z,fun,lower,upper);
+ end
 end

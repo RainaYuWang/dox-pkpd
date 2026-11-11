@@ -49,7 +49,7 @@ workflow_dispatch 要求工作流首先存在于默认分支；之后可以选�
 - `checkpoints/*_start_XX.mat`：每完成一个起点立即保存独立文件，包含当前参数、累计完成的起点、最佳结果、边界、优化器输出、耗时和 RNG 状态。
 - `ci_status.json`：运行模式、实际 MATLAB 版本、commit/run ID、状态、总耗时及成功时的 SSE。
 
-quick 共 9 个起点（control/A/B/C 各 2 个，加 1 个接近不可逆的可逆起点）；full 共 25 个（control/A 各 4 个、B/C 各 8 个，加 1 个额外起点）。
+加入 D 后 quick 共 11 个联合拟合起点（control/A/B/C/D 各 2 个，加 1 个接近不可逆的可逆起点）；full 共 33 个（control/A 各 4 个、B/C/D 各 8 个，加 1 个额外起点）。另逐点计算 D 的条件 kBF profile，保存于独立 profile_checkpoints 目录。
 中间 MAT 用于检查和保留已完成工作，当前不自动从中断点续算。
 
 `ci-logs/context.txt` 记录执行命令和提交；`ci-logs/matlab.log` 记录 MATLAB 进程输出，包括错误栈和输出检查。

@@ -47,11 +47,14 @@ t=0 按 Methods 中的药物施加时刻解释。负时间的处理前点未用�
 两张 `selected_points.png` 用蓝圈标明提取位置；`embeddedData()` 保留像素坐标
 和坐标轴换算。正式报告数值前应复核读图。此代码用于初步机制探索。
 
-## 三种比较
+## 四种比较
 
 A. Old PK / direct PD：旧 PK 三个速率固定，kBF=0，只拟合 beta。
 B. Joint irreversible：kBF=0，联合拟合 kFE、kFB、beta。
 C. Joint reversible：联合拟合 kFE、kFB、kBF、beta。
+
+D. Fixed reference：固定原参考 PK 和已归档 full 生长参数，仅拟合共享 kBF、beta。
+参考值来源与条件 profile 定义见 [模型 D 说明](reports/model_d_definition.md)。
 
 每个模型都用同一批细胞数点、同一组 kp/theta、相同误差定义。
 同一个模型中三档剂量共用参数，不给每档剂量各配一套。
@@ -109,7 +112,7 @@ beta = c/[kEF*(VE/VI)*kFB]
 - search_bounds.csv：人为设置的探索边界，不是生物学置信范围。
 - joint_fit.mat：保存 MATLAB 结果和本次使用的数据。
 
-模型编号：1=A，2=B，3=C。
+模型编号：1=A，2=B，3=C，4=D。
 不保证全局最优；exitflag=1 也不证明唯一性。触及搜索边界要检查。
 如果可逆模型明显比重新拟合的不可逆模型更差，先检查优化收敛，而不是直接
 解释为生物学结论；代码加入接近不可逆的起点并检查这种情况。
