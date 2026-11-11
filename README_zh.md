@@ -10,6 +10,9 @@
 数据内嵌在文件最后的 `embeddedData()` 中，不需要另找 CSV。
 `verify_equations.py` 只是开发时的独立数值验证，使用 MATLAB 不需要运行它。
 
+云端手动 quick/full 流程、结果下载及日志说明见 [ci/README_zh.md](ci/README_zh.md)。
+MATLAB 图窗默认不可见，仍保存所有图片；每完成一个优化起点即保存中间 MAT 文件。
+
 ## 方程和固定量
 
 CF' = kEF (VE/VI) CE - (kFE+kFB) CF + kBF CB

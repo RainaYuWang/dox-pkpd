@@ -1,0 +1,68 @@
+name: MATLAB PK-PD
+run-name: MATLAB PK-PD ${{ inputs.mode || 'quick' }} · ${{ github.ref_name }}
+
+# Enable filtered code-change triggers only AFTER the first successful MATLAB run.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: quick validates the pipeline; full runs the default 8-start fit
+        required: true
+        default: quick
+        type: choice
+        options:
+          - quick
+          - full
+
+permissions:
+  contents: read
+
+jobs:
+  fit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 300
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Record run context
+        env:
+          MODE: ${{ inputs.mode || 'quick' }}
+        run: |
+          mkdir -p ci-logs
+          {
+            date -u --iso-8601=seconds
+            echo "commit=$GITHUB_SHA"
+            echo "run=$GITHUB_RUN_ID attempt=$GITHUB_RUN_ATTEMPT"
+            echo "mode=$MODE MATLAB=R2024b runner=ubuntu-22.04"
+            echo "command=addpath('ci'); run_pkpd_ci('$MODE')"
+            uname -a
+          } | tee ci-logs/context.txt
+
+      - name: Set up base MATLAB R2024b
+        uses: matlab-actions/setup-matlab@v2
+        timeout-minutes: 30
+        with:
+          release: R2024b
+
+      # Official public-project licensing: no Compiler/Coder or license secrets.
+      - name: Run MATLAB fit and verify outputs
+        uses: matlab-actions/run-command@v2
+        timeout-minutes: ${{ inputs.mode == 'full' && 240 || 60 }}
+        with:
+          command: addpath('ci'); run_pkpd_ci('${{ inputs.mode || 'quick' }}')
+          startup-options: -logfile ci-logs/matlab.log
+
+      - name: Upload results and available logs (also on failure)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        timeout-minutes: 10
+        with:
+          name: pkpd-${{ inputs.mode || 'quick' }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            joint_results/
+            ci-logs/
+          if-no-files-found: warn
+          retention-days: 30

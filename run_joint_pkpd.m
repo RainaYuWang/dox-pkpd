@@ -21,8 +21,15 @@ function results = run_joint_pkpd(nStarts)
 % Sparse manual digitization, not raw data. See README_zh.md for limitations.
 if nargin<1,nStarts=8;end
 validateattributes(nStarts,{'numeric'},{'scalar','integer','>=',1});
-rng(42); root=fileparts(mfilename('fullpath'));
+rng(42,'twister'); root=fileparts(mfilename('fullpath'));
 out=fullfile(root,'joint_results');if ~exist(out,'dir'),mkdir(out);end
+checkpointDir=fullfile(out,'checkpoints');
+if ~exist(checkpointDir,'dir'),mkdir(checkpointDir);end
+diary(fullfile(out,'run.log')); diary on;
+logCleanup=onCleanup(@() diary('off')); %#ok<NASGU>
+runTimer=tic;
+fprintf('[%s] START run_joint_pkpd(%d), seed=42/twister, MATLAB %s, %s\n',...
+ datestr(now,30),nStarts,version,computer);
 cfg=struct('cellLine','SUM-149PT','VE',250,'VI',0.004629,'kEF',3.5e-6,...
     'oldFE',1.25,'oldFB',0.21,'rtol',1e-7,'atol',1e-9);
 [C,cs]=embeddedData();
@@ -31,30 +38,32 @@ for j=1:numel(cs)
 end
 fprintf('SUM-149PT, 156.25/312.5/625 nM, 6 h exposure.\n');
 fprintf('APPROXIMATE DIGITIZED DATA; PK reference is simulation only.\n');
+initialRng=rng;
+save(fullfile(out,'run_inputs.mat'),'cfg','C','cs','nStarts','initialRng');
 
 %% 1. Untreated growth: estimate kp and theta, then hold fixed.
 gfun=@(p) sum(((logistic(p,C(:,1),C(1,2))-C(:,2))/max(C(:,2))).^2);
 [g,gSSE,gRuns]=multifit(gfun,[0.03,35000],[1e-5,1e3],[1,1e6],...
- min(4,nStarts),'control');
+ min(4,nStarts),'control',checkpointDir);
 
 %% 2. Three comparators, all fitted to exactly the same cell-count observations.
 % p is always [kFE,kFB,kBF,beta]. Different parameter spaces are mapped to p.
 lo=[1e-4,1e-4,1e-7,1e-9]; hi=[10,10,10,0.1];
 % A: old irreversible PK fixed; fit beta only. This is NOT original paper PD.
 funA=@(x) loss([cfg.oldFE,cfg.oldFB,0,x],cs,cfg,g);
-[xA,sseA,runsA]=multifit(funA,5e-4,lo(4),hi(4),min(4,nStarts),'old-PK/direct-PD');
+[xA,sseA,runsA]=multifit(funA,5e-4,lo(4),hi(4),min(4,nStarts),'old-PK/direct-PD',checkpointDir);
 pA=[cfg.oldFE,cfg.oldFB,0,xA];
 % B: irreversible model; allow both old kinetic rates and beta to refit.
 funB=@(x) loss([x(1),x(2),0,x(3)],cs,cfg,g);
 [xB,sseB,runsB]=multifit(funB,[cfg.oldFE,cfg.oldFB,xA],lo([1,2,4]),...
- hi([1,2,4]),nStarts,'joint irreversible');pB=[xB(1:2),0,xB(3)];
+ hi([1,2,4]),nStarts,'joint irreversible',checkpointDir);pB=[xB(1:2),0,xB(3)];
 % C: reversible model; jointly adjust kFE,kFB,kBF,beta.
 funC=@(x) loss(x,cs,cfg,g);
 [pC,sseC,runsC]=multifit(funC,[cfg.oldFE,cfg.oldFB,0.005,5e-4],lo,hi,...
- nStarts,'joint reversible');
+ nStarts,'joint reversible',checkpointDir);
 % Check a near-irreversible start as an additional nested-model sanity check.
 [pExtra,sExtra,rExtra]=multifit(funC,[pB(1:2),lo(3)*1.01,pB(4)],lo,hi,1,...
- 'reversible near zero');runsC=[runsC;rExtra];
+ 'reversible near zero',checkpointDir);runsC=[runsC;rExtra];
 if sExtra<sseC,pC=pExtra;sseC=sExtra;end
 if sseC>sseB+1e-4
  warning('Reversible fit worse than irreversible. Check convergence/search bounds.');
@@ -93,7 +102,7 @@ nearBound=any((log(pC)-log(lo))<0.02 | (log(hi)-log(pC))<0.02);
 if nearBound,warning('At least one representative parameter is near a bound.');end
 
 %% 5. Cell fits and residuals; no paper fit line is used as target.
-f=figure('Color','w','Position',[80,80,1100,760]);
+f=figure('Visible','off','Color','w','Position',[80,80,1100,760]);
 subplot(2,2,1);tt=linspace(0,max(C(:,1)),300)';
 plot(C(:,1),C(:,2),'ko',tt,logistic(g,tt,C(1,2)),'k-','LineWidth',1.4);
 title('SUM-149PT untreated');xlabel('Hours');ylabel('Cell count');grid on;
@@ -113,14 +122,15 @@ for j=1:numel(cs)
  title(sprintf('SUM-149PT, %g nM, 6 h',c.dose));xlabel('Hours from treatment start');ylabel('Cell count');grid on;
  legend({'Digitized points','Old PK/direct PD','Joint irreversible','Joint reversible'},'Location','best');
 end
-saveas(f,fullfile(out,'01_cell_fits.png'));
+saveas(f,fullfile(out,'01_cell_fits.png'));close(f);
+fprintf('[%s] Saved 01_cell_fits.png (total %.1f s)\n',datestr(now,30),toc(runTimer));
 writetable(array2table(predRows,'VariableNames',{'model_id','dose_nM','time_h','CF','CB','N'}),...
  fullfile(out,'predictions.csv'));
 writetable(array2table(resRows,'VariableNames',{'model_id','dose_nM','time_h','observed_N','predicted_N','residual','scaled_residual'}),...
  fullfile(out,'residuals.csv'));
 writetable(array2table(byDose,'VariableNames',{'model_id','dose_nM','scaled_SSE','RMSE_cells'}),...
  fullfile(out,'fit_by_dose.csv'));
-f=figure('Color','w','Position',[80,80,1100,360]);
+f=figure('Visible','off','Color','w','Position',[80,80,1100,360]);
 for j=1:3
  subplot(1,3,j);hold on;
  for m=1:3
@@ -130,10 +140,11 @@ for j=1:3
  plot([0,max(cs(j).t)],[0,0],'k:');title(sprintf('%g nM',cs(j).dose));
  xlabel('Hours');ylabel('Scaled residual: prediction - data');grid on;
 end
-saveas(f,fullfile(out,'02_residuals.png'));
+saveas(f,fullfile(out,'02_residuals.png'));close(f);
+fprintf('[%s] Saved 02_residuals.png (total %.1f s)\n',datestr(now,30),toc(runTimer));
 
 %% 6. PK predictions versus old simulated PK. These are NOT PK observations.
-f=figure('Color','w','Position',[80,80,1100,650]);
+f=figure('Visible','off','Color','w','Position',[80,80,1100,650]);
 for j=1:3
  c=cs(j);tt=unique([linspace(0,24,120)';linspace(24,600,240)']);
  old=simulate(pA,tt,c,cfg,g);new=simulate(pC,tt,c,cfg,g);
@@ -143,11 +154,12 @@ for j=1:3
  subplot(2,3,j+3);plot(tt,old(:,2),'k--',tt,new(:,2),'b-');
  title(sprintf('%g nM: bound DOX',c.dose));xlabel('Hours');ylabel('CB (nM)');grid on;
 end
-saveas(f,fullfile(out,'03_PK_reference.png'));
+saveas(f,fullfile(out,'03_PK_reference.png'));close(f);
+fprintf('[%s] Saved 03_PK_reference.png (total %.1f s)\n',datestr(now,30),toc(runTimer));
 
 %% 7. Distinct PK parameter sets can predict the same cell counts.
 c=cs(3);tt=unique([linspace(0,24,120)';linspace(24,600,240)']);
-f=figure('Color','w','Position',[80,80,1100,360]);
+f=figure('Visible','off','Color','w','Position',[80,80,1100,360]);
 labels=cell(size(eq,1),1);ref=simulate(eq(1,:),tt,c,cfg,g);maxDelta=0;
 for j=1:size(eq,1)
  Y=simulate(eq(j,:),tt,c,cfg,g);labels{j}=sprintf('set %d: kBF=%.3g',j,eq(j,3));
@@ -159,35 +171,56 @@ end
 subplot(1,3,1);title('Different intracellular DOX');ylabel('CF+CB (nM)');xlabel('Hours');legend(labels,'Location','best');grid on;
 subplot(1,3,2);title('Same killing rate');ylabel('beta CB (h^{-1})');xlabel('Hours');grid on;
 subplot(1,3,3);title('Same cell-count prediction');ylabel('N');xlabel('Hours');grid on;
-saveas(f,fullfile(out,'04_equivalent_parameters.png'));
+saveas(f,fullfile(out,'04_equivalent_parameters.png'));close(f);
+fprintf('[%s] Saved 04_equivalent_parameters.png (total %.1f s)\n',datestr(now,30),toc(runTimer));
 if maxDelta>1e-3,warning('Equivalent-set numerical discrepancy: tighten tolerances.');end
 fprintf('Equivalent-set max relative N difference (numerical): %.3g\n',maxDelta);
 fprintf('These individual PK rates are representatives, NOT unique estimates.\n');
 fprintf('Old simulated PK was NOT included in the loss. No held-out validation.\n');
 results=struct('config',cfg,'growth',g,'summary',summary,'equivalent_sets',eq,...
- 'combinations',abc,'control_runs',gRuns,'max_equivalent_N_difference',maxDelta);
+ 'combinations',abc,'control_runs',gRuns,'max_equivalent_N_difference',maxDelta,...
+ 'elapsed_seconds',toc(runTimer),'seed',42,'matlab_version',version);
 save(fullfile(out,'joint_fit.mat'),'results','C','cs','runsA','runsB','runsC');
-fprintf('Results saved in %s\n',out);
+fprintf('[%s] COMPLETE in %.1f s. Results saved in %s\n',datestr(now,30),toc(runTimer),out);
 end
 
 %% Optimizer: positive parameters, log coordinates, explicit exploratory bounds.
-function [best,fbest,runs]=multifit(fun,guess,lo,hi,n,label)
+function [best,fbest,runs]=multifit(fun,guess,lo,hi,n,label,checkpointDir)
 guess=guess(:)';lo=lo(:)';hi=hi(:)';d=numel(guess);
 opts=optimset('Display','off','MaxIter',650,'MaxFunEvals',1800,...
- 'TolX',1e-5,'TolFun',1e-8);
+ 'TolX',1e-5,'TolFun',1e-8,'OutputFcn',@progress);
 runs=zeros(n,d+3);fbest=Inf;best=guess;
 for i=1:n
+ startTimer=tic;lastProgress=0;
+ fprintf('[%s] %s %d/%d START\n',datestr(now,30),label,i,n);
  if i==1,z=log(guess);
  elseif mod(i,2)==0,z=min(log(hi)-1e-5,max(log(lo)+1e-5,log(guess)+2*randn(1,d)));
  else,z=log(lo)+rand(1,d).*(log(hi)-log(lo));end
  [z,~,flag,output]=fminsearch(@(z) boundedLoss(z,fun,lo,hi),z,opts);
  p=exp(z);sse=boundedLoss(z,fun,lo,hi);
  runs(i,:)=[p,sse,flag,output.funcCount];
- fprintf('%s %d/%d: SSE=%.7g, exit=%d\n',label,i,n,sse,flag);drawnow;
  if sse<fbest,fbest=sse;best=p;end
+ elapsedSeconds=toc(startTimer);completedRuns=runs(1:i,:);rngState=rng;
+ % One file per completed start: later failures cannot overwrite earlier starts.
+ checkpoint=fullfile(checkpointDir,sprintf('%s_start_%02d.mat',...
+  matlab.lang.makeValidName(label),i));
+ save(checkpoint,'label','i','n','p','sse','flag','output','completedRuns',...
+  'best','fbest','guess','lo','hi','elapsedSeconds','rngState');
+ fprintf('[%s] %s %d/%d DONE: SSE=%.7g, exit=%d, evals=%d, %.1f s; %s\n',...
+  datestr(now,30),label,i,n,sse,flag,output.funcCount,elapsedSeconds,checkpoint);
+ drawnow;
 end
 if fbest>=1e9,error('No valid fit found for %s.',label);end
 if all(runs(:,end-1)<=0),warning('%s: no converged start; inspect results.',label);end
+ function stop=progress(~,optimValues,state)
+  stop=false;
+  if strcmp(state,'iter') && toc(startTimer)-lastProgress>=60
+   lastProgress=toc(startTimer);
+   fprintf('[%s] %s %d/%d running: iter=%d, evals=%d, SSE=%.7g, %.1f s\n',...
+    datestr(now,30),label,i,n,optimValues.iteration,optimValues.funccount,...
+    optimValues.fval,lastProgress);
+  end
+ end
 end
 function v=boundedLoss(z,fun,lo,hi)
 if any(~isfinite(z)),v=1e12;return;end
