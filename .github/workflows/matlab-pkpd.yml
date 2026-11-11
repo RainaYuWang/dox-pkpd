@@ -1,8 +1,13 @@
 name: MATLAB PK-PD
 run-name: MATLAB PK-PD ${{ inputs.mode || 'quick' }} · ${{ github.ref_name }}
 
-# Enable filtered code-change triggers only AFTER the first successful MATLAB run.
 on:
+  push:
+    branches: [pkpd-cloud]
+    paths:
+      - '**/*.m'
+      - 'ci/*.py'
+      - '.github/workflows/matlab-pkpd.yml'
   workflow_dispatch:
     inputs:
       mode:
@@ -17,15 +22,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: pkpd-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   fit:
+    permissions:
+      contents: write
     runs-on: ubuntu-22.04
     timeout-minutes: 300
     steps:
       - name: Check out source
         uses: actions/checkout@v6
         with:
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Record run context
         env:
@@ -41,7 +52,12 @@ jobs:
             uname -a
           } | tee ci-logs/context.txt
 
+      - name: Publish running status through Git
+        continue-on-error: true
+        run: python3 ci/publish_results.py --phase running
+
       - name: Set up base MATLAB R2024b
+        id: setup
         uses: matlab-actions/setup-matlab@v2
         timeout-minutes: 30
         with:
@@ -49,6 +65,7 @@ jobs:
 
       # Official public-project licensing: no Compiler/Coder or license secrets.
       - name: Run MATLAB fit and verify outputs
+        id: fit
         uses: matlab-actions/run-command@v2
         timeout-minutes: ${{ inputs.mode == 'full' && 240 || 60 }}
         with:
@@ -66,3 +83,13 @@ jobs:
             ci-logs/
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Publish results through Git (also on failure)
+        if: ${{ always() }}
+        timeout-minutes: 5
+        env:
+          SETUP_OUTCOME: ${{ steps.setup.outcome }}
+          FIT_OUTCOME: ${{ steps.fit.outcome }}
+        run: >-
+          python3 ci/publish_results.py --phase finished
+          --setup-outcome "$SETUP_OUTCOME" --fit-outcome "$FIT_OUTCOME"

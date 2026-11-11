@@ -66,20 +66,47 @@ matlab -batch "addpath('ci'); run_pkpd_ci('quick')" -logfile matlab-console.log
 CI 包装器拒绝复用已有 `joint_results`，防止旧文件伪装成本次结果。再次运行前请移动旧结果目录。
 GitHub-hosted runner 每次使用全新 checkout。运行输出已加入 `.gitignore`。
 
-## 首次成功后再启用代码触发
+## 自动修改 → 运行 → 取回结果
 
-当前工作流仅支持手动触发，不会因文档提交自动计算。
-首次实际 MATLAB quick 成功并检查 artifacts 后，在 YAML 的 `on:` 下增加：
+`pkpd-cloud` 是计算提交分支，只有 `**/*.m`、`ci/*.py` 或工作流本身改变时才启动 quick。
+`main` 和文档修改不会自动计算；手动 quick/full 仍可用。同一分支只保留一个运行中的任务，后续提交排队（GitHub 只保留最新 pending 任务）。
 
-```yaml
-  push:
-    branches: [main]
-    paths:
-      - '**/*.m'
-      - '.github/workflows/matlab-pkpd.yml'
+从仓库根目录，提交代码后执行：
+
+```bash
+git push origin HEAD:refs/heads/pkpd-cloud
+python3 ci/collect_results.py --sha HEAD --wait 5400
 ```
 
-自动触发时没有 `inputs.mode`，现有工作流会默认执行 quick。此配置应在首次成功后提交，不要提前启用。
+推送仅允许 fast-forward，遇到分支分歧时先检查并合并，不要强推。
+collector 每 30 秒查询一次 Git 结果分支；默认不加 `--wait` 时查询一次。
+退出码 0 表示本次 MATLAB 输出检查成功，1 表示运行失败并已取回已有结果，2 表示尚未完成或仍在排队。
+结果保存在 `cloud-results/<source_sha>/<run_id>-<attempt>/`。包含 `manifest.json`、经过 SHA-256 核对的 `results.zip` 及解压后的输出。
+按精确代码提交和运行编号匹配，旧的成功结果不会充当本次结果。
+
+工作流使用 GitHub 自动提供的短期 `GITHUB_TOKEN`，仅为拟合 job 声明 `contents: write`，将状态及已有结果提交到 `pkpd-results` 分支。
+无需个人 token。结果分支不触发计算，发布操作也不更改源码分支。标准 Actions artifacts 仍保留。
+该分支位于公开仓库，因此结果和模型日志也公开；发布范围只包含 `joint_results`、`ci-logs` 中的结果和日志，不转存进程环境或凭据。
+结果分支保留历史运行，适合当前小体积结果；超过 90 MiB 的压缩包会明确报错并保留标准 artifact 路径。
+
+本地传输测试已验证临时 Git 仓库中的运行状态更新、精确 SHA 匹配、压缩包校验和提取、失败退出码，使用的都是合成文件。
+实际 MATLAB 是否成功仍以具体云端运行的 `ci_status.json` 和日志为准。
+
+## API 连接限制与最小权限
+
+当前 Codex 云环境的代理在 HTTPS CONNECT 阶段返回 `403 Forbidden`，正文为 `Domain forbidden`；目标域名为 `api.github.com`。
+这发生在 GitHub 身份验证之前，因此不能把 `gh auth status` 的失败判断为 token 无效，也不能据此认定组织禁止 Actions。
+Git HTTPS 读写已验证可用；公开 GitHub 网页可见运行摘要，但未登录网页要求登录才能查看日志。
+Git 回传路径可绕开对外部 Actions API 的依赖，前提是 GitHub runner 能启动且 `GITHUB_TOKEN` 能写入结果分支。
+
+若要恢复原生 API 路径：
+
+1. 在 Codex 当前环境设置 → Internet access / 网络访问 → 自定义允许域名添加 `api.github.com`，保留已有规则。日志/artifact 下载可能重定向至其他域名，应按实际 Location 主机追加，勿把带签名的完整 URL 写入日志。
+2. 网络恢复后先用现有 GitHub 绑定测试；Git push 权限不等于 Actions REST 权限。
+3. 若 API 明确返回授权不足，GitHub App 仅需该仓库的 Actions 读写（触发、状态、日志、artifacts）；Metadata 只读。已有 Git 代码/工作流写入权限可继续使用。
+4. 若平台连接不能授予 Actions 权限，可使用仅选中 `RainaYuWang/dox-pkpd` 的 fine-grained PAT：Actions read/write，Metadata read；不需要额外 Contents write（代码已能通过现有 Git 通道推送）。只需读取结果时 Actions read 即可。仅在云环境安全凭据设置中输入，禁止发到聊天或写入仓库。
+
+Git 回传方案本身不要求上述 API 域名或个人 token。若组织禁止 Actions、禁止官方 Actions 或限制结果分支写入，需要在仓库/组织 Actions 策略或规则集中针对本仓库及 `pkpd-results` 做最小调整，不需要放开所有仓库权限。
 
 ## 科学解释与当前证据
 
