@@ -1,0 +1,11 @@
+Independent Python numerical verification, NOT MATLAB execution.
+Growth kp=0.031095059, theta=35143.599
+Scaled SSE A/B/C: 2.5914432, 2.5914432, 0.99396224
+One reversible representative [kFE,kFB,kBF,beta]: [1.02785444e+00 2.46233437e-01 5.24188310e-03 3.60934991e-04]
+(a,b,c) combinations: 1.2793297577803364, 0.005387892804054289, 1.6799520492473516e-05
+Equivalent sets checked: 31
+Maximum relative N discrepancy between equivalent sets: 4.6412e-09
+PASS: mass-balance cancellation; positive trajectories; beta=0 logistic limit;
+tolerance sensitivity; exact combination invariance; equal N predictions.
+Individual PK rates are not uniquely estimated. Python optimizer differs from
+MATLAB fminsearch, so representative values may differ even with similar fits.
