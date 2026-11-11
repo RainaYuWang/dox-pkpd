@@ -56,7 +56,8 @@ C. Joint reversible：联合拟合 kFE、kFB、kBF、beta。
 D. Fixed reference：固定原参考 PK 和已归档 full 生长参数，仅拟合共享 kBF、beta。
 参考值来源与条件 profile 定义见 [模型 D 说明](reports/model_d_definition.md)。
 
-每个模型都用同一批细胞数点、同一组 kp/theta、相同误差定义。
+每个模型都用同一批细胞数点和相同误差定义。A/B/C 使用本次对照拟合的 kp/theta；
+D 固定使用已归档 full 的 kp/theta。本次 full 中两者完全一致，quick 中可能有微小数值差异。
 同一个模型中三档剂量共用参数，不给每档剂量各配一套。
 A/B 都不是论文原来的完整 PD 模型；所有比较使用我们新的直接杀伤方程。
 C 比 B 多一个名义参数，但可观测的独立组合数也需考虑；不根据误差降低直接
@@ -128,3 +129,5 @@ Codex 容器本身未安装 MATLAB；已在 GitHub-hosted Linux runner 上实际
 本次探索的目标是判断直接动态连接能解释什么行为，以及哪里仍有系统性偏差。
 读图误差、共享 theta、线性杀伤、简化 PK 等都可能影响拟合，不能将所有偏差
 自动归因于缺少 damage-memory。
+
+模型 D 的实际运行、D/C 对照及条件 profile 见 [D 结果报告](reports/model_d_results.md)。

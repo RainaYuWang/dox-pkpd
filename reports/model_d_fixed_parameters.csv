@@ -1,0 +1,8 @@
+parameter,fixed_value,unit,source
+kEF,3.5e-06,h^-1,"6325d45:run_joint_pkpd.m cfg"
+kFE,1.25,h^-1,"6325d45:run_joint_pkpd.m cfg"
+kFB,0.21,h^-1,"6325d45:run_joint_pkpd.m cfg"
+VI,0.004629,uL,"6325d45:run_joint_pkpd.m cfg"
+VE,250,uL,"6325d45:run_joint_pkpd.m cfg"
+kp,0.0310949594449836,h^-1,"full run 43100077010 control fit, commit 39cf75b"
+theta,35143.6152846162,cells,"full run 43100077010 control fit, commit 39cf75b"
