@@ -1,0 +1,173 @@
+{
+  "run": {
+    "status": "success",
+    "mode": "sensitivity",
+    "nStarts": 8,
+    "seed": 42,
+    "matlab_version": "24.2.0.3361896 (R2024b) Update 10",
+    "platform": "GLNXA64",
+    "commit": "489f5399a298070e9503cb29373dc87615afc7af",
+    "run_id": "43103720063",
+    "started_utc": "11-Nov-2026 21:32:19",
+    "elapsed_seconds": 183.464969,
+    "command": "run_joint_pkpd(8,1)",
+    "rng_algorithm": "twister",
+    "sensitivity_cases": 9,
+    "sensitivity_starts": 72,
+    "profile_points": 124,
+    "completed_starts": 33,
+    "scaled_SSE": [
+      2.59144614292735,
+      2.58420137370098,
+      0.993936415710197,
+      0.993969254952416
+    ],
+    "max_equivalent_N_difference": 3.1289764840799915e-06
+  },
+  "starts": [
+    {
+      "case_id": 1,
+      "min_SSE": 0.993969247996989,
+      "max_SSE": 0.993969248021947,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    },
+    {
+      "case_id": 2,
+      "min_SSE": 0.993969254951223,
+      "max_SSE": 0.993969254999638,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    },
+    {
+      "case_id": 3,
+      "min_SSE": 0.993969254157823,
+      "max_SSE": 0.993969254191285,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    },
+    {
+      "case_id": 4,
+      "min_SSE": 0.993944094989508,
+      "max_SSE": 0.99394409610635,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    },
+    {
+      "case_id": 5,
+      "min_SSE": 0.993969254951223,
+      "max_SSE": 0.993969254999638,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    },
+    {
+      "case_id": 6,
+      "min_SSE": 0.99399491005654,
+      "max_SSE": 0.993994911162232,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    },
+    {
+      "case_id": 7,
+      "min_SSE": 0.99396471965736,
+      "max_SSE": 0.993965457722718,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    },
+    {
+      "case_id": 8,
+      "min_SSE": 0.993969254951223,
+      "max_SSE": 0.993969254999638,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    },
+    {
+      "case_id": 9,
+      "min_SSE": 0.99397511786609,
+      "max_SSE": 0.993975118199899,
+      "exitflags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "near_bounds": []
+    }
+  ]
+}

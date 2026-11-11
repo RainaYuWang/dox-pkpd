@@ -120,3 +120,5 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 实际运行证据及本次 quick 诊断见 [2026-11-11 云端验证记录](VALIDATION_2026-11-11.md)。
 
 固定 PK 敏感性分析使用 `sensitivity` 模式，或推送到 `pkpd-sensitivity`；它调用 `run_joint_pkpd(8,true)`，追加 9 个情形、每个 8 起点的拟合，并输出有效杀伤速率。详见 [敏感性定义](../reports/model_d_sensitivity_definition.md)。
+
+已完成的 MATLAB 敏感性运行、参数/曲线比较及自动取回后重建图表的命令见 [敏感性结果](../reports/model_d_sensitivity_results.md)。分析脚本为 `ci/analyze_model_d_sensitivity.py --results <joint_results路径> --output reports`，依赖 numpy>=2、scipy、matplotlib。
