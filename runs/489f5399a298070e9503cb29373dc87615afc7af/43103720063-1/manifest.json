@@ -1,0 +1,14 @@
+{
+  "source_sha": "489f5399a298070e9503cb29373dc87615afc7af",
+  "run_id": "43103720063",
+  "attempt": "1",
+  "run_url": "https://github.com/RainaYuWang/dox-pkpd/actions/runs/43103720063",
+  "phase": "running",
+  "setup_outcome": "pending",
+  "fit_outcome": "pending",
+  "updated_unix": 1794432666.3857417,
+  "archive_sha256": "ca684e001e995716fa7d18bfeaf82c75cb6850d1e1d7a4d600698ab19be0f75b",
+  "files": [
+    "ci-logs/context.txt"
+  ]
+}
