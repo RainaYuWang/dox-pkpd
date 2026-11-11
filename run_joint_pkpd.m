@@ -1,4 +1,4 @@
-function results = run_joint_pkpd(nStarts)
+function results = run_joint_pkpd(nStarts,doSensitivity)
 % RUN_JOINT_PKPD  SUM-149PT reversible PK / direct cell-killing hypothesis.
 % Open this file and click Run, or type: results = run_joint_pkpd;
 % Base MATLAB only, no extra toolbox. Approximate digitized data are embedded.
@@ -20,6 +20,7 @@ function results = run_joint_pkpd(nStarts)
 % McKenna et al. Sci Rep 7:5725 (2017), DOI 10.1038/s41598-017-05902-z.
 % Sparse manual digitization, not raw data. See README_zh.md for limitations.
 if nargin<1,nStarts=8;end
+if nargin<2,doSensitivity=false;end
 validateattributes(nStarts,{'numeric'},{'scalar','integer','>=',1});
 rng(42,'twister'); root=fileparts(mfilename('fullpath'));
 out=fullfile(root,'joint_results');if ~exist(out,'dir'),mkdir(out);end
@@ -202,6 +203,10 @@ results=struct('config',cfg,'growth',g,'summary',summary,'equivalent_sets',eq,..
  'combinations',abc,'control_runs',gRuns,'max_equivalent_N_difference',maxDelta,...
  'elapsed_seconds',toc(runTimer),'seed',42,'matlab_version',version,...
  'model_d_growth',gD,'model_d_fixed',fixedTable,'model_d_profile',profileD);
+if doSensitivity
+ results.model_d_sensitivity=sensitivityFixedPK(cs,cfg,gD,lo,hi,nStarts,out);
+ results.elapsed_seconds=toc(runTimer);
+end
 save(fullfile(out,'joint_fit.mat'),'results','C','cs','runsA','runsB','runsC','runsD');
 fprintf('[%s] COMPLETE in %.1f s. Results saved in %s\n',datestr(now,30),toc(runTimer),out);
 end
@@ -386,4 +391,65 @@ if ~isfinite(bestSSE) || bestSSE>=1e9,error('PKPD:ProfileFit','No valid beta fit
   evals=evals+1;
   value=boundedLoss(z,fun,lower,upper);
  end
+end
+
+function summary=sensitivityFixedPK(cs,cfg,g,lo,hi,nStarts,out)
+% One-at-a-time exploratory reference perturbations, not uncertainty intervals.
+% Each of the nine cases is re-fitted, including all three 1x reference cases.
+originalRng=rng;rngCleanup=onCleanup(@() rng(originalRng)); %#ok<NASGU>
+paramNames={'kEF','kFE','kFB'};multipliers=[0.5,1,2];
+caseNames=cell(9,1);summaryRows=zeros(9,13);allRuns=[];predictions=[];residuals=[];byDose=[];
+caseId=0;
+for field=1:3
+ for factor=multipliers
+  caseId=caseId+1;caseNames{caseId}=paramNames{field};
+  workCfg=cfg;fe=cfg.oldFE;fb=cfg.oldFB;
+  if field==1,workCfg.kEF=cfg.kEF*factor;
+  elseif field==2,fe=cfg.oldFE*factor;
+  else,fb=cfg.oldFB*factor;end
+  label=sprintf('D sensitivity %s x%g',paramNames{field},factor);
+  checkpointDir=fullfile(out,'sensitivity_checkpoints',sprintf('case_%02d',caseId));
+  if ~exist(checkpointDir,'dir'),mkdir(checkpointDir);end
+  % Identical starting points for every scenario; same optimizer and bounds.
+  rng(314159,'twister');
+  fun=@(x) loss([fe,fb,x(1),x(2)],cs,workCfg,g);
+  timer=tic;
+  [x,sse,runs]=multifit(fun,[0.005,5e-4],lo([3,4]),hi([3,4]),...
+   nStarts,label,checkpointDir);
+  nearLower=log(x./lo([3,4]))<0.02;nearUpper=log(hi([3,4])./x)<0.02;
+  summaryRows(caseId,:)=[caseId,factor,workCfg.kEF,fe,fb,x,sse,...
+   nearLower(1),nearUpper(1),nearLower(2),nearUpper(2),toc(timer)];
+  allRuns=[allRuns;[repmat(caseId,nStarts,1),(1:nStarts)',runs]]; %#ok<AGROW>
+  p=[fe,fb,x];
+  save(fullfile(checkpointDir,'case_fit.mat'),'p','sse','runs','workCfg','g',...
+   'cs','lo','hi','factor','field','caseId');
+  for doseId=1:numel(cs)
+   c=cs(doseId);
+   % Resolve the transient around the unchanged 6 h washout and the long tail.
+   t=unique([linspace(0,12,241)';linspace(12,max(c.t),501)';c.wash;c.t]);
+   Y=simulate(p,t,c,workCfg,g);effect=x(2)*Y(:,2);
+   predictions=[predictions;[repmat([caseId,c.dose],numel(t),1),t,Y,effect]]; %#ok<AGROW>
+   Yo=simulate(p,c.t,c,workCfg,g);rr=Yo(:,3)-c.y;
+   residuals=[residuals;[repmat([caseId,c.dose],numel(c.t),1),c.t,c.y,Yo(:,3),rr,rr/max(c.y)]]; %#ok<AGROW>
+   byDose=[byDose;[caseId,c.dose,sum((rr/max(c.y)).^2),sqrt(mean(rr.^2))]]; %#ok<AGROW>
+  end
+  summary=array2table(summaryRows(1:caseId,:),'VariableNames',{'case_id','multiplier',...
+   'fixed_kEF','fixed_kFE','fixed_kFB','kBF','beta','scaled_SSE',...
+   'kBF_near_lower','kBF_near_upper','beta_near_lower','beta_near_upper','elapsed_seconds'});
+  summary.varied_parameter=caseNames(1:caseId);
+  writetable(summary,fullfile(out,'model_d_sensitivity_summary.csv'));
+  fprintf('[%s] Sensitivity case %d/9 COMPLETE: %s, SSE=%.10g\n',...
+   datestr(now,30),caseId,label,sse);
+ end
+end
+writetable(array2table(allRuns,'VariableNames',{'case_id','start','kBF','beta',...
+ 'scaled_SSE','exitflag','function_evaluations'}),fullfile(out,'model_d_sensitivity_starts.csv'));
+writetable(array2table(predictions,'VariableNames',{'case_id','dose_nM','time_h','CF','CB','N','beta_CB'}),...
+ fullfile(out,'model_d_sensitivity_predictions.csv'));
+writetable(array2table(residuals,'VariableNames',{'case_id','dose_nM','time_h',...
+ 'observed_N','predicted_N','residual','scaled_residual'}),fullfile(out,'model_d_sensitivity_residuals.csv'));
+writetable(array2table(byDose,'VariableNames',{'case_id','dose_nM','scaled_SSE','RMSE_cells'}),...
+ fullfile(out,'model_d_sensitivity_by_dose.csv'));
+save(fullfile(out,'model_d_sensitivity.mat'),'summary','allRuns','predictions',...
+ 'residuals','byDose','cfg','g','cs','lo','hi','nStarts');
 end

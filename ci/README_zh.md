@@ -118,3 +118,5 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 创建工作流或通过静态语法检查，不等于 MATLAB 已运行。本说明不预先宣称 Actions 运行成功；请以具体 run ID、日志、`ci_status.json` 和当次 artifacts 为证据。
 
 实际运行证据及本次 quick 诊断见 [2026-11-11 云端验证记录](VALIDATION_2026-11-11.md)。
+
+固定 PK 敏感性分析使用 `sensitivity` 模式，或推送到 `pkpd-sensitivity`；它调用 `run_joint_pkpd(8,true)`，追加 9 个情形、每个 8 起点的拟合，并输出有效杀伤速率。详见 [敏感性定义](../reports/model_d_sensitivity_definition.md)。

@@ -1,7 +1,7 @@
 function results = run_pkpd_ci(mode)
 % RUN_PKPD_CI Run the unchanged quick/full fit and check its saved outputs.
 if nargin<1,mode='quick';end
-mode=validatestring(mode,{'quick','full'});
+mode=validatestring(mode,{'quick','full','sensitivity'});
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(root);
 out=fullfile(root,'joint_results');
@@ -11,16 +11,17 @@ if exist(out,'dir')
 end
 mkdir(out);
 timer=tic;
-nStarts=2;if strcmp(mode,'full'),nStarts=8;end
+doSensitivity=strcmp(mode,'sensitivity');
+nStarts=2;if ~strcmp(mode,'quick'),nStarts=8;end
 status=struct('status','running','mode',mode,'nStarts',nStarts,...
  'seed',42,'matlab_version',version,'platform',computer,...
  'commit',getenv('GITHUB_SHA'),'run_id',getenv('GITHUB_RUN_ID'),...
  'started_utc',char(datetime('now','TimeZone','UTC')),'elapsed_seconds',0);
-status.command=sprintf('run_joint_pkpd(%d)',nStarts);
+status.command=sprintf('run_joint_pkpd(%d,%d)',nStarts,doSensitivity);
 status.rng_algorithm='twister';
 writeStatus(out,status);
 try
- results=run_joint_pkpd(nStarts);
+ results=run_joint_pkpd(nStarts,doSensitivity);
  % These are runtime/output checks, not tests of predictive scientific validity.
  required={'01_cell_fits.png','02_residuals.png','03_PK_reference.png',...
   '04_equivalent_parameters.png','representative_parameters.csv',...
@@ -58,6 +59,29 @@ try
   'PKPD:ProfileOptimum','D joint fit and beta profile optimum disagree.');
  assert(isequal(results.model_d_growth,[0.031094959444983555,35143.615284616222]),...
   'PKPD:GrowthReference','D must use the archived full growth fit.');
+ if doSensitivity
+  sens=readtable(fullfile(out,'model_d_sensitivity_summary.csv'));
+  starts=readtable(fullfile(out,'model_d_sensitivity_starts.csv'));
+  curves=readtable(fullfile(out,'model_d_sensitivity_predictions.csv'));
+  assert(height(sens)==9 && height(starts)==9*nStarts,...
+   'PKPD:SensitivityCount','Missing sensitivity fits.');
+  assert(all(isfinite(sens.scaled_SSE)) && all(sens.scaled_SSE<1e9),...
+   'PKPD:SensitivityFit','Invalid sensitivity fit.');
+  vals=curves{:,{'CF','CB','N','beta_CB'}};
+  assert(all(isfinite(vals(:))) && all(curves.N>0),...
+   'PKPD:SensitivityCurves','Invalid sensitivity trajectories.');
+  reference=[3.5e-6,1.25,0.21];names={'kEF','kFE','kFB'};
+  for k=1:9
+   expected=reference;which=find(strcmp(names,sens.varied_parameter{k}));
+   expected(which)=expected(which)*sens.multiplier(k);
+   assert(isequal(sens{k,{'fixed_kEF','fixed_kFE','fixed_kFB'}},expected),...
+    'PKPD:SensitivityFixed','More than one reference parameter changed.');
+  end
+  refs=sens(sens.multiplier==1,:);
+  assert(max(refs.scaled_SSE)-min(refs.scaled_SSE)<1e-10,...
+   'PKPD:SensitivityRepeat','Identical reference fits disagree.');
+  status.sensitivity_cases=height(sens);status.sensitivity_starts=height(starts);
+ end
  status.profile_points=height(profile);
  status.status='success';
  status.completed_starts=numel(checkpoints);
