@@ -68,7 +68,7 @@ GitHub-hosted runner 每次使用全新 checkout。运行输出已加入 `.gitig
 
 ## 自动修改 → 运行 → 取回结果
 
-`pkpd-cloud` 是计算提交分支，只有 `**/*.m`、`ci/*.py` 或工作流本身改变时才启动 quick。
+`pkpd-cloud` 是 quick 计算分支，`pkpd-full` 是 full 计算分支；只有 `**/*.m`、`ci/*.py` 或工作流本身改变时才启动对应模式。
 `main` 和文档修改不会自动计算；手动 quick/full 仍可用。同一分支只保留一个运行中的任务，后续提交排队（GitHub 只保留最新 pending 任务）。
 
 从仓库根目录，提交代码后执行：
@@ -77,6 +77,8 @@ GitHub-hosted runner 每次使用全新 checkout。运行输出已加入 `.gitig
 git push origin HEAD:refs/heads/pkpd-cloud
 python3 ci/collect_results.py --sha HEAD --wait 5400
 ```
+
+全自动 full 使用 `git push origin HEAD:refs/heads/pkpd-full`，随后使用同一个 collector；该分支调用现有 `run_joint_pkpd(8)`，不改变模型或优化设置。
 
 推送仅允许 fast-forward，遇到分支分歧时先检查并合并，不要强推。
 collector 每 30 秒查询一次 Git 结果分支；默认不加 `--wait` 时查询一次。
