@@ -116,7 +116,8 @@ beta = c/[kEF*(VE/VI)*kFB]
 
 ## 验证情况
 
-本环境没有 MATLAB/Octave，不能声称已实际执行 MATLAB 文件。
+Codex 容器本身未安装 MATLAB；已在 GitHub-hosted Linux runner 上实际完成 MATLAB quick，
+并自动取回、校验和检查结果，见 [云端验证记录](ci/VALIDATION_2026-11-11.md)。
 随包的 verification_report.txt / verification_preview.png 来自独立 Python
 求解相同三个 ODE，用于检查数值、物质转移恒等式、无药效时的 logistic 极限，
 以及等价参数的细胞数轨迹一致性。优化器不同，代表参数可能不同。

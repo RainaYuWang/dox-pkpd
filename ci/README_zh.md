@@ -114,3 +114,5 @@ quick 用于验证运行流程，不是最终拟合。检查训练数据上的 S
 cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独立实验数据或验证集。未引入 damage-memory 或阈值机制。
 
 创建工作流或通过静态语法检查，不等于 MATLAB 已运行。本说明不预先宣称 Actions 运行成功；请以具体 run ID、日志、`ci_status.json` 和当次 artifacts 为证据。
+
+实际运行证据及本次 quick 诊断见 [2026-11-11 云端验证记录](VALIDATION_2026-11-11.md)。
