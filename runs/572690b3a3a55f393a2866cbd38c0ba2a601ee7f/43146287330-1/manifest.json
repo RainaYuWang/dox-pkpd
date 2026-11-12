@@ -1,0 +1,16 @@
+{
+  "source_sha": "572690b3a3a55f393a2866cbd38c0ba2a601ee7f",
+  "run_id": "43146287330",
+  "attempt": "1",
+  "mode": "time-full",
+  "source_ref": "refs/heads/pkpd-time-full",
+  "run_url": "https://github.com/RainaYuWang/dox-pkpd/actions/runs/43146287330",
+  "phase": "running",
+  "setup_outcome": "pending",
+  "fit_outcome": "pending",
+  "updated_unix": 1794452981.6217756,
+  "archive_sha256": "bc35c6f8188ddb09fb54c4d00fd1953defa5c8e5f5a09d5a3703082ec4eb82a3",
+  "files": [
+    "ci-logs/context.txt"
+  ]
+}
