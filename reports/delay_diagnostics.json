@@ -1,0 +1,822 @@
+{
+  "run": {
+    "status": "success",
+    "mode": "delay-full",
+    "nStarts": 8,
+    "seed": 42,
+    "matlab_version": "24.2.0.3361896 (R2024b) Update 10",
+    "platform": "GLNXA64",
+    "commit": "f05543e978e425785fdf918751185cd1a733d300",
+    "run_id": "43137925939",
+    "started_utc": "12-Nov-2026 01:58:13",
+    "elapsed_seconds": 477.88587,
+    "command": "run_joint_pkpd(8,0,1,0,'full')",
+    "rng_algorithm": "twister",
+    "dose_beta_comparison_tolerance": 1e-06,
+    "dose_beta_scan_SSE_difference": [
+      5.518024130679589e-07,
+      7.292194625918569e-12,
+      1.2146839090121375e-11
+    ],
+    "dose_beta_starts": 24,
+    "dose_beta_shared_SSE": 0.9939692549524157,
+    "dose_beta_separate_SSE": 0.32394513275293113,
+    "delay_stage1_SSE": 0.9939511066678196,
+    "delay_stage2_SSE": 0.9939372052634344,
+    "delay_stage1_parameters": [
+      0.004937388902829105,
+      0.00048483696361161703,
+      4.6887233079316255
+    ],
+    "delay_stage2_parameters": [
+      0.004967445724935516,
+      0.000486745658527817,
+      2.1298566846307008
+    ],
+    "delay_stage1_starts": 9,
+    "delay_stage2_starts": 10,
+    "delay_r_profile_points": 32,
+    "paper_definitions_verified": false,
+    "delay_numerical_checks": "passed",
+    "profile_points": 124,
+    "completed_starts": 33,
+    "scaled_SSE": [
+      2.59144614292735,
+      2.58420137370098,
+      0.993936415710197,
+      0.993969254952416
+    ],
+    "max_equivalent_N_difference": 3.1289764840799915e-06
+  },
+  "summary": [
+    {
+      "model_id": 1.0,
+      "model": "Archived linear D",
+      "status": "completed",
+      "scaled_SSE": 0.993969254952416,
+      "parameters_refitted_this_comparison": 0.0
+    },
+    {
+      "model_id": 2.0,
+      "model": "Dose-specific beta diagnostic",
+      "status": "completed",
+      "scaled_SSE": 0.323945132752931,
+      "parameters_refitted_this_comparison": 3.0
+    },
+    {
+      "model_id": 3.0,
+      "model": "Paper-inspired constant-rate diagnostic",
+      "status": "not_run_unverified_paper",
+      "scaled_SSE": null,
+      "parameters_refitted_this_comparison": 3.0
+    },
+    {
+      "model_id": 4.0,
+      "model": "Paper-inspired transient-rate diagnostic",
+      "status": "not_run_unverified_paper",
+      "scaled_SSE": null,
+      "parameters_refitted_this_comparison": 6.0
+    },
+    {
+      "model_id": 5.0,
+      "model": "CB delay stage 1 fixed kBF",
+      "status": "completed",
+      "scaled_SSE": 0.99395110666782,
+      "parameters_refitted_this_comparison": 2.0
+    },
+    {
+      "model_id": 6.0,
+      "model": "CB delay stage 2 shared kBF",
+      "status": "completed",
+      "scaled_SSE": 0.993937205263434,
+      "parameters_refitted_this_comparison": 3.0
+    }
+  ],
+  "parameters": [
+    {
+      "stage": 1.0,
+      "kBF": 0.0049373889028291,
+      "alpha": 0.000484836963611617,
+      "r_per_h": 4.68872330793163,
+      "scaled_SSE": 0.99395110666782,
+      "kBF_near_lower": 0.0,
+      "alpha_near_lower": 0.0,
+      "r_near_lower": 0.0,
+      "kBF_near_upper": 0.0,
+      "alpha_near_upper": 0.0,
+      "r_near_upper": 0.0
+    },
+    {
+      "stage": 2.0,
+      "kBF": 0.00496744572493552,
+      "alpha": 0.000486745658527817,
+      "r_per_h": 2.1298566846307,
+      "scaled_SSE": 0.993937205263434,
+      "kBF_near_lower": 0.0,
+      "alpha_near_lower": 0.0,
+      "r_near_lower": 0.0,
+      "kBF_near_upper": 0.0,
+      "alpha_near_upper": 0.0,
+      "r_near_upper": 0.0
+    }
+  ],
+  "by_dose": [
+    {
+      "model_id": 1.0,
+      "dose_nM": 156.25,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000484798717475659,
+      "r_per_h": null,
+      "scaled_SSE": 0.656188701077068,
+      "RMSE_cells": 6365.23271899484
+    },
+    {
+      "model_id": 2.0,
+      "dose_nM": 156.25,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000886256137920392,
+      "r_per_h": null,
+      "scaled_SSE": 0.190987006901449,
+      "RMSE_cells": 3434.01212151876
+    },
+    {
+      "model_id": 5.0,
+      "dose_nM": 156.25,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000484836963611617,
+      "r_per_h": 4.68872330793163,
+      "scaled_SSE": 0.655882854188731,
+      "RMSE_cells": 6363.74914154397
+    },
+    {
+      "model_id": 6.0,
+      "dose_nM": 156.25,
+      "kBF": 0.00496744572493552,
+      "amplitude": 0.000486745658527817,
+      "r_per_h": 2.1298566846307,
+      "scaled_SSE": 0.656081021456999,
+      "RMSE_cells": 6364.71043481001
+    },
+    {
+      "model_id": 1.0,
+      "dose_nM": 312.5,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000484798717475659,
+      "r_per_h": null,
+      "scaled_SSE": 0.166709326558333,
+      "RMSE_cells": 3474.39326479582
+    },
+    {
+      "model_id": 2.0,
+      "dose_nM": 312.5,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000563722435491738,
+      "r_per_h": null,
+      "scaled_SSE": 0.0968765636318668,
+      "RMSE_cells": 2648.55129575697
+    },
+    {
+      "model_id": 5.0,
+      "dose_nM": 312.5,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000484836963611617,
+      "r_per_h": 4.68872330793163,
+      "scaled_SSE": 0.167130467726097,
+      "RMSE_cells": 3478.7790035602
+    },
+    {
+      "model_id": 6.0,
+      "dose_nM": 312.5,
+      "kBF": 0.00496744572493552,
+      "amplitude": 0.000486745658527817,
+      "r_per_h": 2.1298566846307,
+      "scaled_SSE": 0.166770255149,
+      "RMSE_cells": 3475.02811394
+    },
+    {
+      "model_id": 1.0,
+      "dose_nM": 625.0,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000484798717475659,
+      "r_per_h": null,
+      "scaled_SSE": 0.171071227317015,
+      "RMSE_cells": 3357.62275048451
+    },
+    {
+      "model_id": 2.0,
+      "dose_nM": 625.0,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000424539545654518,
+      "r_per_h": null,
+      "scaled_SSE": 0.0360815622196154,
+      "RMSE_cells": 1542.00605746123
+    },
+    {
+      "model_id": 5.0,
+      "dose_nM": 625.0,
+      "kBF": 0.0049373889028291,
+      "amplitude": 0.000484836963611617,
+      "r_per_h": 4.68872330793163,
+      "scaled_SSE": 0.170937784752992,
+      "RMSE_cells": 3356.31295337758
+    },
+    {
+      "model_id": 6.0,
+      "dose_nM": 625.0,
+      "kBF": 0.00496744572493552,
+      "amplitude": 0.000486745658527817,
+      "r_per_h": 2.1298566846307,
+      "scaled_SSE": 0.171085928657436,
+      "RMSE_cells": 3357.76701932324
+    }
+  ],
+  "metrics": [
+    {
+      "model_id": 1,
+      "dose_nM": 156.25,
+      "scaled_SSE": 0.656188701077068,
+      "RMSE_cells": 6365.232718994837,
+      "early_min_N": 3636.36363636363,
+      "early_min_time_h": 0.0,
+      "min_N": 3636.36363636363,
+      "min_time_h": 0.0,
+      "late_count": 3,
+      "late_mean_residual": 8812.749770057611,
+      "late_RMSE": 8829.35340517924,
+      "final_residual": 8501.60689472944
+    },
+    {
+      "model_id": 2,
+      "dose_nM": 156.25,
+      "scaled_SSE": 0.190987006901449,
+      "RMSE_cells": 3434.012121518758,
+      "early_min_N": 3636.36363636363,
+      "early_min_time_h": 0.0,
+      "min_N": 3636.36363636363,
+      "min_time_h": 0.0,
+      "late_count": 3,
+      "late_mean_residual": 5794.089942236547,
+      "late_RMSE": 5866.700475519421,
+      "final_residual": 6205.08657182696
+    },
+    {
+      "model_id": 5,
+      "dose_nM": 156.25,
+      "scaled_SSE": 0.655882854188731,
+      "RMSE_cells": 6363.749141543971,
+      "early_min_N": 3636.36363636363,
+      "early_min_time_h": 0.0,
+      "min_N": 3636.36363636363,
+      "min_time_h": 0.0,
+      "late_count": 3,
+      "late_mean_residual": 8806.37933616707,
+      "late_RMSE": 8823.006830776318,
+      "final_residual": 8496.54075980304
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 156.25,
+      "scaled_SSE": 0.656081021456999,
+      "RMSE_cells": 6364.710434810009,
+      "early_min_N": 3636.36363636363,
+      "early_min_time_h": 0.0,
+      "min_N": 3636.36363636363,
+      "min_time_h": 0.0,
+      "late_count": 3,
+      "late_mean_residual": 8814.586854261393,
+      "late_RMSE": 8831.236406282473,
+      "final_residual": 8507.04425210369
+    },
+    {
+      "model_id": 1,
+      "dose_nM": 312.5,
+      "scaled_SSE": 0.166709326558333,
+      "RMSE_cells": 3474.3932647958245,
+      "early_min_N": 4606.06060606061,
+      "early_min_time_h": 0.0,
+      "min_N": 4606.06060606061,
+      "min_time_h": 0.0,
+      "late_count": 3,
+      "late_mean_residual": 1379.7945526548028,
+      "late_RMSE": 2928.4257273817993,
+      "final_residual": 4896.6925214677
+    },
+    {
+      "model_id": 2,
+      "dose_nM": 312.5,
+      "scaled_SSE": 0.0968765636318668,
+      "RMSE_cells": 2648.551295756965,
+      "early_min_N": 4606.06060606061,
+      "early_min_time_h": 0.0,
+      "min_N": 4606.06060606061,
+      "min_time_h": 0.0,
+      "late_count": 3,
+      "late_mean_residual": -195.01691826275677,
+      "late_RMSE": 2963.76550666885,
+      "final_residual": 3787.31091010105
+    },
+    {
+      "model_id": 5,
+      "dose_nM": 312.5,
+      "scaled_SSE": 0.167130467726097,
+      "RMSE_cells": 3478.779003560203,
+      "early_min_N": 4606.06060606061,
+      "early_min_time_h": 0.0,
+      "min_N": 4606.06060606061,
+      "min_time_h": 0.0,
+      "late_count": 3,
+      "late_mean_residual": 1365.254312676231,
+      "late_RMSE": 2923.450125558093,
+      "final_residual": 4884.88509031472
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 312.5,
+      "scaled_SSE": 0.166770255149,
+      "RMSE_cells": 3475.0281139399976,
+      "early_min_N": 4606.06060606061,
+      "early_min_time_h": 0.0,
+      "min_N": 4606.06060606061,
+      "min_time_h": 0.0,
+      "late_count": 3,
+      "late_mean_residual": 1377.3019265240262,
+      "late_RMSE": 2934.3053711402604,
+      "final_residual": 4904.20289613116
+    },
+    {
+      "model_id": 1,
+      "dose_nM": 625,
+      "scaled_SSE": 0.171071227317015,
+      "RMSE_cells": 3357.6227504845106,
+      "early_min_N": 1538.96215975918,
+      "early_min_time_h": 124.086666666667,
+      "min_N": 1538.96215975918,
+      "min_time_h": 124.086666666667,
+      "late_count": 5,
+      "late_mean_residual": -3173.442035124472,
+      "late_RMSE": 4753.262291617932,
+      "final_residual": -766.604949367549
+    },
+    {
+      "model_id": 2,
+      "dose_nM": 625,
+      "scaled_SSE": 0.0360815622196154,
+      "RMSE_cells": 1542.006057461225,
+      "early_min_N": 2471.33394717015,
+      "early_min_time_h": 99.0626666666667,
+      "min_N": 2471.33394717015,
+      "min_time_h": 99.0626666666667,
+      "late_count": 5,
+      "late_mean_residual": 20.182380448118625,
+      "late_RMSE": 1949.2494478573647,
+      "final_residual": 541.110230245493
+    },
+    {
+      "model_id": 5,
+      "dose_nM": 625,
+      "scaled_SSE": 0.170937784752992,
+      "RMSE_cells": 3356.312953377579,
+      "early_min_N": 1552.15111200499,
+      "early_min_time_h": 124.608,
+      "min_N": 1552.15111200499,
+      "min_time_h": 124.608,
+      "late_count": 5,
+      "late_mean_residual": -3185.5265157939266,
+      "late_RMSE": 4757.071370838433,
+      "final_residual": -782.36198774767
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 625,
+      "scaled_SSE": 0.171085928657436,
+      "RMSE_cells": 3357.767019323242,
+      "early_min_N": 1552.74483183379,
+      "early_min_time_h": 125.129333333333,
+      "min_N": 1552.74483183379,
+      "min_time_h": 125.129333333333,
+      "late_count": 5,
+      "late_mean_residual": -3160.9615554461056,
+      "late_RMSE": 4759.131641036042,
+      "final_residual": -734.231465732839
+    }
+  ],
+  "peaks": [
+    {
+      "model_id": 5,
+      "dose_nM": 156.25,
+      "kBF": 0.0049373889028291,
+      "alpha": 0.000484836963611617,
+      "r_per_h": 4.68872330793163,
+      "kernel_peak_delay_h": 0.21327767375574508,
+      "kernel_mean_delay_h": 0.42655534751149016,
+      "CB_peak": 24.8890001498849,
+      "CB_peak_time_h": 8.55,
+      "E2_peak": 24.8801304100047,
+      "E2_peak_time_h": 9.05,
+      "killing_peak_per_h": 0.0120628068822477,
+      "killing_peak_time_h": 9.05,
+      "killing_peak_at_window_end": false
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 156.25,
+      "kBF": 0.00496744572493552,
+      "alpha": 0.000486745658527817,
+      "r_per_h": 2.1298566846307,
+      "kernel_peak_delay_h": 0.46951515903211677,
+      "kernel_mean_delay_h": 0.9390303180642335,
+      "CB_peak": 24.885813062321,
+      "CB_peak_time_h": 8.55,
+      "E2_peak": 24.828372414089,
+      "E2_peak_time_h": 9.95,
+      "killing_peak_per_h": 0.0120851024808696,
+      "killing_peak_time_h": 9.95,
+      "killing_peak_at_window_end": false
+    },
+    {
+      "model_id": 5,
+      "dose_nM": 312.5,
+      "kBF": 0.0049373889028291,
+      "alpha": 0.000484836963611617,
+      "r_per_h": 4.68872330793163,
+      "kernel_peak_delay_h": 0.21327767375574508,
+      "kernel_mean_delay_h": 0.42655534751149016,
+      "CB_peak": 49.7780002146555,
+      "CB_peak_time_h": 8.55,
+      "E2_peak": 49.7602607349235,
+      "E2_peak_time_h": 9.05,
+      "killing_peak_per_h": 0.0241256137232427,
+      "killing_peak_time_h": 9.05,
+      "killing_peak_at_window_end": false
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 312.5,
+      "kBF": 0.00496744572493552,
+      "alpha": 0.000486745658527817,
+      "r_per_h": 2.1298566846307,
+      "kernel_peak_delay_h": 0.46951515903211677,
+      "kernel_mean_delay_h": 0.9390303180642335,
+      "CB_peak": 49.7716259330437,
+      "CB_peak_time_h": 8.55,
+      "E2_peak": 49.6567446368437,
+      "E2_peak_time_h": 9.95,
+      "killing_peak_per_h": 0.0241702048686081,
+      "killing_peak_time_h": 9.95,
+      "killing_peak_at_window_end": false
+    },
+    {
+      "model_id": 5,
+      "dose_nM": 625,
+      "kBF": 0.0049373889028291,
+      "alpha": 0.000484836963611617,
+      "r_per_h": 4.68872330793163,
+      "kernel_peak_delay_h": 0.21327767375574508,
+      "kernel_mean_delay_h": 0.42655534751149016,
+      "CB_peak": 99.5560000509119,
+      "CB_peak_time_h": 8.55,
+      "E2_peak": 99.5205210915987,
+      "E2_peak_time_h": 9.05,
+      "killing_peak_per_h": 0.0482512272630966,
+      "killing_peak_time_h": 9.05,
+      "killing_peak_at_window_end": false
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 625,
+      "kBF": 0.00496744572493552,
+      "alpha": 0.000486745658527817,
+      "r_per_h": 2.1298566846307,
+      "kernel_peak_delay_h": 0.46951515903211677,
+      "kernel_mean_delay_h": 0.9390303180642335,
+      "CB_peak": 99.5432518091849,
+      "CB_peak_time_h": 8.55,
+      "E2_peak": 99.31348921658,
+      "E2_peak_time_h": 9.95,
+      "killing_peak_per_h": 0.0483404097094195,
+      "killing_peak_time_h": 9.95,
+      "killing_peak_at_window_end": false
+    }
+  ],
+  "curve_changes": [
+    {
+      "model_id": 5,
+      "dose_nM": 156.25,
+      "max_absolute_N_change_from_D": 26.479840245399828
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 156.25,
+      "max_absolute_N_change_from_D": 49.35203171869034
+    },
+    {
+      "model_id": 5,
+      "dose_nM": 312.5,
+      "max_absolute_N_change_from_D": 51.9874100051793
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 312.5,
+      "max_absolute_N_change_from_D": 112.73993886832977
+    },
+    {
+      "model_id": 5,
+      "dose_nM": 625,
+      "max_absolute_N_change_from_D": 91.8692326044802
+    },
+    {
+      "model_id": 6,
+      "dose_nM": 625,
+      "max_absolute_N_change_from_D": 198.14538140377954
+    }
+  ],
+  "quick_full": [
+    {
+      "mode": "delay-quick",
+      "run_id": "43137362254",
+      "stage": 1,
+      "kBF": 0.004937388902829105,
+      "alpha": 0.00048483696361161703,
+      "r_per_h": 4.6887233079316255,
+      "scaled_SSE": 0.9939511066678196,
+      "elapsed_seconds": 130.751012
+    },
+    {
+      "mode": "delay-quick",
+      "run_id": "43137362254",
+      "stage": 2,
+      "kBF": 0.004954619870893625,
+      "alpha": 0.0004859396769116474,
+      "r_per_h": 3.650908073445084,
+      "scaled_SSE": 0.9939437152702432,
+      "elapsed_seconds": 130.751012
+    },
+    {
+      "mode": "delay-full",
+      "run_id": "43137925939",
+      "stage": 1,
+      "kBF": 0.004937388902829105,
+      "alpha": 0.00048483696361161703,
+      "r_per_h": 4.6887233079316255,
+      "scaled_SSE": 0.9939511066678196,
+      "elapsed_seconds": 477.88587
+    },
+    {
+      "mode": "delay-full",
+      "run_id": "43137925939",
+      "stage": 2,
+      "kBF": 0.004967445724935516,
+      "alpha": 0.000486745658527817,
+      "r_per_h": 2.1298566846307008,
+      "scaled_SSE": 0.9939372052634344,
+      "elapsed_seconds": 477.88587
+    }
+  ],
+  "starts": [
+    {
+      "stage": 1,
+      "start": 1,
+      "alpha": 0.000484836963611617,
+      "r_per_h": 4.68872330793163,
+      "scaled_SSE": 0.99395110666782,
+      "exitflag": 1.0,
+      "function_evaluations": 174.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 1,
+      "start": 2,
+      "alpha": 0.000484746792062156,
+      "r_per_h": 3.69070799776456,
+      "scaled_SSE": 0.993952228637516,
+      "exitflag": 1.0,
+      "function_evaluations": 134.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 1,
+      "start": 3,
+      "alpha": 0.000484805894042527,
+      "r_per_h": 23.8040903748442,
+      "scaled_SSE": 0.993962797183164,
+      "exitflag": 1.0,
+      "function_evaluations": 156.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 1,
+      "start": 4,
+      "alpha": 0.000484840540851461,
+      "r_per_h": 4.68802287641564,
+      "scaled_SSE": 0.993951107222053,
+      "exitflag": 1.0,
+      "function_evaluations": 152.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 1,
+      "start": 5,
+      "alpha": 0.000484805552718864,
+      "r_per_h": 23.8042035730053,
+      "scaled_SSE": 0.99396279721189,
+      "exitflag": 1.0,
+      "function_evaluations": 100.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 1,
+      "start": 6,
+      "alpha": 0.000484830917641704,
+      "r_per_h": 3.91727470720099,
+      "scaled_SSE": 0.99395280774886,
+      "exitflag": 1.0,
+      "function_evaluations": 160.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 1,
+      "start": 7,
+      "alpha": 0.000484804252827018,
+      "r_per_h": 91.1237158280252,
+      "scaled_SSE": 0.993966294526844,
+      "exitflag": 1.0,
+      "function_evaluations": 110.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 1,
+      "start": 8,
+      "alpha": 0.000484846041660693,
+      "r_per_h": 3.69195167066899,
+      "scaled_SSE": 0.993951861775161,
+      "exitflag": 1.0,
+      "function_evaluations": 178.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 1,
+      "start": 9,
+      "alpha": 0.000484802600904011,
+      "r_per_h": 80.3944273779294,
+      "scaled_SSE": 0.993966065382393,
+      "exitflag": 1.0,
+      "function_evaluations": 150.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 2,
+      "start": 1,
+      "kBF": 0.00495114165553575,
+      "alpha": 0.000485697267428993,
+      "r_per_h": 4.65340066504716,
+      "scaled_SSE": 0.993944399081694,
+      "exitflag": 1.0,
+      "function_evaluations": 171.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 2,
+      "start": 2,
+      "kBF": 0.00495461987089362,
+      "alpha": 0.000485939676911647,
+      "r_per_h": 3.65090807344508,
+      "scaled_SSE": 0.993943715270243,
+      "exitflag": 1.0,
+      "function_evaluations": 165.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 2,
+      "start": 3,
+      "kBF": 1.19311625187965,
+      "alpha": 0.0999999990570152,
+      "r_per_h": 0.0109445454709941,
+      "scaled_SSE": 1.22512712619492,
+      "exitflag": 1.0,
+      "function_evaluations": 324.0,
+      "near_bounds": [
+        "alpha"
+      ]
+    },
+    {
+      "stage": 2,
+      "start": 4,
+      "kBF": 0.00493593227846714,
+      "alpha": 0.000484774595164292,
+      "r_per_h": 41.6146229506061,
+      "scaled_SSE": 0.993961089937207,
+      "exitflag": 1.0,
+      "function_evaluations": 182.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 2,
+      "start": 5,
+      "kBF": 0.217563710771804,
+      "alpha": 0.0164365668435002,
+      "r_per_h": 39.1072112795252,
+      "scaled_SSE": 2.19091736925648,
+      "exitflag": 1.0,
+      "function_evaluations": 274.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 2,
+      "start": 6,
+      "kBF": 0.00495109743458026,
+      "alpha": 0.000485692434223393,
+      "r_per_h": 4.65372339458029,
+      "scaled_SSE": 0.993944399435897,
+      "exitflag": 1.0,
+      "function_evaluations": 252.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 2,
+      "start": 7,
+      "kBF": 0.00495117326485981,
+      "alpha": 0.000485698552383448,
+      "r_per_h": 4.65345409867777,
+      "scaled_SSE": 0.993944399103734,
+      "exitflag": 1.0,
+      "function_evaluations": 283.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 2,
+      "start": 8,
+      "kBF": 0.0049397332707568,
+      "alpha": 0.000484952988631558,
+      "r_per_h": 27.6011091199112,
+      "scaled_SSE": 0.99396449438632,
+      "exitflag": 1.0,
+      "function_evaluations": 169.0,
+      "near_bounds": []
+    },
+    {
+      "stage": 2,
+      "start": 9,
+      "kBF": 0.00494202415603898,
+      "alpha": 0.00048511455974291,
+      "r_per_h": 98.85864199658,
+      "scaled_SSE": 0.993966166052496,
+      "exitflag": 1.0,
+      "function_evaluations": 236.0,
+      "near_bounds": [
+        "r_per_h"
+      ]
+    },
+    {
+      "stage": 2,
+      "start": 10,
+      "kBF": 0.00496744572493552,
+      "alpha": 0.000486745658527817,
+      "r_per_h": 2.1298566846307,
+      "scaled_SSE": 0.993937205263434,
+      "exitflag": 1.0,
+      "function_evaluations": 128.0,
+      "near_bounds": []
+    }
+  ],
+  "descriptive_profile_ranges": [
+    {
+      "SSE_increase_pct": 1,
+      "r_min": 0.199526231496888,
+      "r_max": 100.0,
+      "kBF_min": 0.00493749480323661,
+      "kBF_max": 0.00528359131717637,
+      "alpha_min": 0.000484773865996741,
+      "alpha_max": 0.000507202990524324
+    },
+    {
+      "SSE_increase_pct": 5,
+      "r_min": 0.1,
+      "r_max": 100.0,
+      "kBF_min": 0.00493749480323661,
+      "kBF_max": 0.0056979990987314,
+      "alpha_min": 0.000484773865996741,
+      "alpha_max": 0.00053411286234733
+    },
+    {
+      "SSE_increase_pct": 10,
+      "r_min": 0.1,
+      "r_max": 100.0,
+      "kBF_min": 0.00493749480323661,
+      "kBF_max": 0.0056979990987314,
+      "alpha_min": 0.000484773865996741,
+      "alpha_max": 0.00053411286234733
+    }
+  ],
+  "paper": {
+    "doi": "10.1038/s41598-017-05902-z",
+    "verified": false,
+    "origin_in_current_data_hours": [],
+    "time_origin_definition": [],
+    "D_definition": [],
+    "theta_definition": [],
+    "initial_cell_number_definition": [],
+    "fitting_interval_definition": [],
+    "source_urls": [],
+    "reason": "No article or supplement file is present in the repository or workspace. Nature and Europe PMC requests returned CONNECT 403 from the current environment proxy. The README treatment-start assertion has not been independently checked against the paper. Time-form comparators must not run until the primary definitions are verified."
+  }
+}

@@ -9,3 +9,6 @@ and [analysis definition](reports/model_d_sensitivity_definition.md).
 Shared-beta assumption: [dose-specific beta diagnostic](reports/model_d_dose_beta_results.md).
 
 PD-form comparison: [shared saturating killing and Ks profile](reports/model_d_saturation_results.md).
+
+Current study (saturation work paused): [CB-driven two-stage delay results](reports/model_d_delay_results.md),
+[methods](reports/model_d_delay_definition.md), and [primary-paper definition audit](reports/paper_definition_audit.md).

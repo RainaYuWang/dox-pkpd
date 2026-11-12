@@ -1,0 +1,4 @@
+parameter,unit,lower,upper
+kBF,h^-1,1e-07,10
+alpha,nM^-1 h^-1,1e-09,0.1
+r,h^-1,0.0001,100

@@ -132,3 +132,5 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 已完成的饱和 PD 运行、SSE、逐时残差、最低细胞数、晚期偏差与 Ks profile 见 [饱和 PD 结果](../reports/model_d_saturation_results.md)。`ci/analyze_model_d_saturation.py --results <joint_results路径> --output reports` 可重建报告图表。
 
 本轮延迟 PD 使用 `delay-quick` / `delay-full`，对应计算分支 `pkpd-delay-quick` / `pkpd-delay-full`；先通过 quick 后再推送 full。收集结果时同时指定精确提交和 `--mode delay-quick` 或 `--mode delay-full`，避免同提交不同模式混淆。原文定义未核实的时间形式对照会明确跳过，见 [延迟模型定义](../reports/model_d_delay_definition.md) 和 [文献核查](../reports/paper_definition_audit.md)。
+
+两次实际 MATLAB 运行、自动回传结果、完整分析及重建命令见 [延迟 PD 结果](../reports/model_d_delay_results.md)。`ci/analyze_model_d_delay.py --results <full的joint_results路径> --quick-results <quick的joint_results路径> --output reports` 重建图表，依赖 numpy、matplotlib，不重新拟合。原文定义 JSON 的相关变更也能触发计算分支，main 和普通文档更新仍不触发。
