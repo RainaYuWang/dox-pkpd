@@ -4,6 +4,7 @@ No model is fitted here. The archived delay-full run supplies unchanged data,
 growth parameters and predictions for D, dose beta and both delay stages.
 """
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -48,8 +49,16 @@ def main():
     args = parser.parse_args()
     paper = json.loads((ROOT / "reports/paper_time_definitions.json").read_text())
     validate_definitions(paper)  # Fail before network access or any MATLAB computation.
+    documents = paper.get("source_documents", [])
+    expected = {"references/papers/41598_2017_Article_5902.pdf",
+                "references/papers/41598_2017_5902_MOESM1_ESM.pdf"}
+    if {item["file"] for item in documents} != expected or len(documents) != 2:
+        raise ValueError("Record both reviewed primary PDF files and their hashes")
+    for item in documents:
+        if hashlib.sha256((ROOT / item["file"]).read_bytes()).hexdigest() != item["sha256"]:
+            raise ValueError("Primary document hash mismatch: " + item["file"])
     if args.check_only:
-        print("Definition fields/evidence present; primary-source review remains a human/scientific check.")
+        print("Definition fields/evidence and both PDF hashes checked; source interpretation is recorded in the audit.")
         return
     subprocess.run(["git", "fetch", "--no-tags", "--depth=1", "origin", SOURCE_SHA],
                    cwd=ROOT, check=True)
