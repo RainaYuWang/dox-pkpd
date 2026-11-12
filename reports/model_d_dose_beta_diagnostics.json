@@ -1,0 +1,90 @@
+{
+  "run": {
+    "status": "success",
+    "mode": "dose-beta",
+    "nStarts": 8,
+    "seed": 42,
+    "matlab_version": "24.2.0.3361896 (R2024b) Update 10",
+    "platform": "GLNXA64",
+    "commit": "8651970481d212cc935db0204c455ca89a494e52",
+    "run_id": "43130155204",
+    "started_utc": "12-Nov-2026 00:51:41",
+    "elapsed_seconds": 152.160943,
+    "command": "run_joint_pkpd(8,0,1)",
+    "rng_algorithm": "twister",
+    "dose_beta_comparison_tolerance": 1e-06,
+    "dose_beta_scan_SSE_difference": [
+      5.518024130679589e-07,
+      7.292194625918569e-12,
+      1.2146839090121375e-11
+    ],
+    "dose_beta_starts": 24,
+    "dose_beta_shared_SSE": 0.9939692549524157,
+    "dose_beta_separate_SSE": 0.32394513275293113,
+    "profile_points": 124,
+    "completed_starts": 33,
+    "scaled_SSE": [
+      2.59144614292735,
+      2.58420137370098,
+      0.993936415710197,
+      0.993969254952416
+    ],
+    "max_equivalent_N_difference": 3.1289764840799915e-06
+  },
+  "starts": [
+    {
+      "dose_nM": 156.25,
+      "SSE_min": 0.190987006901449,
+      "SSE_max": 0.190987558719506,
+      "flags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "beta_min": 0.000886254708513026,
+      "beta_max": 0.000886921933131481,
+      "near_bound_starts": []
+    },
+    {
+      "dose_nM": 312.5,
+      "SSE_min": 0.0968765636318668,
+      "SSE_max": 0.0968765636755426,
+      "flags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "beta_min": 0.000563720525665596,
+      "beta_max": 0.000563724077161794,
+      "near_bound_starts": []
+    },
+    {
+      "dose_nM": 625.0,
+      "SSE_min": 0.0360815622196154,
+      "SSE_max": 0.0360815624011325,
+      "flags": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "beta_min": 0.000424537071175138,
+      "beta_max": 0.000424539841995315,
+      "near_bound_starts": []
+    }
+  ]
+}

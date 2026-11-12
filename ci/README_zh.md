@@ -124,3 +124,5 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 已完成的 MATLAB 敏感性运行、参数/曲线比较及自动取回后重建图表的命令见 [敏感性结果](../reports/model_d_sensitivity_results.md)。分析脚本为 `ci/analyze_model_d_sensitivity.py --results <joint_results路径> --output reports`，依赖 numpy>=2、scipy、matplotlib。
 
 共享 beta 假设的诊断使用 `dose-beta` 模式，或将相关代码推送至 `pkpd-dose-beta`。调用 `run_joint_pkpd(8,false,true)`，保持归档 D 的参考 PK、生长参数和最佳 kBF，追加三个剂量各自的 beta 拟合及一维扫描复核。输出、失败保存及 Git 自动取回沿用相同流程。详见 [分剂量 beta 诊断定义](../reports/model_d_dose_beta_definition.md)。
+
+已完成的实际诊断、各剂量 beta/SSE、残差形状、625 nM 早期下降及数值审计见 [诊断结果](../reports/model_d_dose_beta_results.md)。图表可由 `ci/analyze_model_d_dose_beta.py --results <joint_results路径> --output reports` 重建。

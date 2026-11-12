@@ -3,6 +3,7 @@
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 
 import matplotlib
@@ -66,11 +67,16 @@ def main():
                                 SSE_max=max(item["scaled_SSE"] for item in dose_starts),
                                 flags=[int(item["exitflag"]) for item in dose_starts],
                                 beta_min=min(item["beta"] for item in dose_starts),
-                                beta_max=max(item["beta"] for item in dose_starts)))
+                                beta_max=max(item["beta"] for item in dose_starts),
+                                near_bound_starts=[int(item["start"]) for item in dose_starts
+                                                   if math.log(item["beta"] / 1e-9) < .02
+                                                   or math.log(.1 / item["beta"]) < .02]))
     write("summary", summary)
     write("metrics", details)
     for name in ("residuals", "starts", "fixed"):
         (output / (prefix + name + ".csv")).write_bytes((source / (prefix + name + ".csv")).read_bytes())
+    for path in sorted((source / "dose_beta_checkpoints").glob("dose_*/local_objective.csv")):
+        (output / (prefix + path.parent.name + "_local_objective.csv")).write_bytes(path.read_bytes())
     (output / (prefix + "diagnostics.json")).write_text(
         json.dumps(dict(run=status, starts=diagnostics), indent=2) + "\n")
 
