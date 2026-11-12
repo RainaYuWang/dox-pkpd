@@ -135,4 +135,4 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 
 两次实际 MATLAB 运行、自动回传结果、完整分析及重建命令见 [延迟 PD 结果](../reports/model_d_delay_results.md)。`ci/analyze_model_d_delay.py --results <full的joint_results路径> --quick-results <quick的joint_results路径> --output reports` 重建图表，依赖 numpy、matplotlib，不重新拟合。原文定义 JSON 的相关变更也能触发计算分支，main 和普通文档更新仍不触发。
 
-原文时间形式诊断的独立模式为 `time-quick` / `time-full`，对应 `pkpd-time-quick` / `pkpd-time-full`。它们调用 `run_time_form_diagnostics(2/8)`，从精确锁定的旧 full 归档读取数据、生长参数和 D/分剂量 beta/延迟比较曲线，**不重跑旧模型**。当前原文定义仍未核实，预检查会停止执行；新模式尚未实际跑通，详见 [A/B 专项状态](../reports/time_form_status.md)。原文核实后先 quick、成功再 full；使用 collector 的 `--mode` 过滤并以 `ci/analyze_time_forms.py` 生成报告图表。
+原文时间形式诊断的独立模式为 `time-quick` / `time-full`，对应 `pkpd-time-quick` / `pkpd-time-full`。它们调用 `run_time_form_diagnostics(2/8)`，从精确锁定的旧 full 归档读取数据、生长参数和 D/分剂量 beta/延迟比较曲线，**不重跑旧模型**。原文定义现已根据用户提供的两份完整 PDF 核实，见 [文献记录](../reports/paper_definition_audit.md)。先 quick、成功再 full；使用 collector 的 `--mode` 过滤并以 `ci/analyze_time_forms.py` 生成报告图表。此前准备记录见 [A/B 专项状态](../reports/time_form_status.md)。
