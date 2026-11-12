@@ -1,0 +1,16 @@
+{
+  "source_sha": "0ce5d0e658a82ed3eee202d36c02e0443e4125ae",
+  "run_id": "43160254529",
+  "attempt": "1",
+  "mode": "sat-quick",
+  "source_ref": "refs/heads/pkpd-sat-quick",
+  "run_url": "https://github.com/RainaYuWang/dox-pkpd/actions/runs/43160254529",
+  "phase": "running",
+  "setup_outcome": "pending",
+  "fit_outcome": "pending",
+  "updated_unix": 1794460580.4249346,
+  "archive_sha256": "e5eba155f511745d496ae3fa27cc90fb4989534ab3d7cfa4badddb2f0b88f24a",
+  "files": [
+    "ci-logs/context.txt"
+  ]
+}
