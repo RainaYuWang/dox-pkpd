@@ -1,0 +1,12 @@
+{
+  "doi": "10.1038/s41598-017-05902-z",
+  "verified": false,
+  "origin_in_current_data_hours": null,
+  "time_origin_definition": null,
+  "D_definition": null,
+  "theta_definition": null,
+  "initial_cell_number_definition": null,
+  "fitting_interval_definition": null,
+  "source_urls": [],
+  "reason": "No article or supplement file is present in the repository or workspace. Nature and Europe PMC requests returned CONNECT 403 from the current environment proxy. The README treatment-start assertion has not been independently checked against the paper. Time-form comparators must not run until the primary definitions are verified."
+}

@@ -1,12 +1,13 @@
 name: MATLAB PK-PD
-run-name: MATLAB PK-PD ${{ inputs.mode || (github.ref_name == 'pkpd-saturation' && 'saturation' || (github.ref_name == 'pkpd-dose-beta' && 'dose-beta' || (github.ref_name == 'pkpd-sensitivity' && 'sensitivity' || (github.ref_name == 'pkpd-full' && 'full' || 'quick')))) }} · ${{ github.ref_name }}
+run-name: MATLAB PK-PD ${{ inputs.mode || (github.ref_name == 'pkpd-delay-full' && 'delay-full' || (github.ref_name == 'pkpd-delay-quick' && 'delay-quick' || (github.ref_name == 'pkpd-saturation' && 'saturation' || (github.ref_name == 'pkpd-dose-beta' && 'dose-beta' || (github.ref_name == 'pkpd-sensitivity' && 'sensitivity' || (github.ref_name == 'pkpd-full' && 'full' || 'quick')))))) }} · ${{ github.ref_name }}
 
 on:
   push:
-    branches: [pkpd-cloud, pkpd-full, pkpd-sensitivity, pkpd-dose-beta, pkpd-saturation]
+    branches: [pkpd-cloud, pkpd-full, pkpd-sensitivity, pkpd-dose-beta, pkpd-saturation, pkpd-delay-quick, pkpd-delay-full]
     paths:
       - '**/*.m'
       - 'ci/*.py'
+      - 'reports/paper_time_definitions.json'
       - '.github/workflows/matlab-pkpd.yml'
   workflow_dispatch:
     inputs:
@@ -21,6 +22,8 @@ on:
           - sensitivity
           - dose-beta
           - saturation
+          - delay-quick
+          - delay-full
 
 permissions:
   contents: read
@@ -35,6 +38,8 @@ jobs:
       contents: write
     runs-on: ubuntu-22.04
     timeout-minutes: 300
+    env:
+      PKPD_MODE: ${{ inputs.mode || (github.ref_name == 'pkpd-delay-full' && 'delay-full' || (github.ref_name == 'pkpd-delay-quick' && 'delay-quick' || (github.ref_name == 'pkpd-saturation' && 'saturation' || (github.ref_name == 'pkpd-dose-beta' && 'dose-beta' || (github.ref_name == 'pkpd-sensitivity' && 'sensitivity' || (github.ref_name == 'pkpd-full' && 'full' || 'quick')))))) }}
     steps:
       - name: Check out source
         uses: actions/checkout@v6
@@ -43,7 +48,7 @@ jobs:
 
       - name: Record run context
         env:
-          MODE: ${{ inputs.mode || (github.ref_name == 'pkpd-saturation' && 'saturation' || (github.ref_name == 'pkpd-dose-beta' && 'dose-beta' || (github.ref_name == 'pkpd-sensitivity' && 'sensitivity' || (github.ref_name == 'pkpd-full' && 'full' || 'quick')))) }}
+          MODE: ${{ env.PKPD_MODE }}
         run: |
           mkdir -p ci-logs
           {
@@ -70,9 +75,9 @@ jobs:
       - name: Run MATLAB fit and verify outputs
         id: fit
         uses: matlab-actions/run-command@v2
-        timeout-minutes: ${{ (inputs.mode == 'full' || inputs.mode == 'sensitivity' || inputs.mode == 'dose-beta' || inputs.mode == 'saturation' || (github.event_name == 'push' && (github.ref_name == 'pkpd-full' || github.ref_name == 'pkpd-sensitivity' || github.ref_name == 'pkpd-dose-beta' || github.ref_name == 'pkpd-saturation'))) && 240 || 60 }}
+        timeout-minutes: ${{ (env.PKPD_MODE == 'quick' || env.PKPD_MODE == 'delay-quick') && 60 || 240 }}
         with:
-          command: addpath('ci'); run_pkpd_ci('${{ inputs.mode || (github.ref_name == 'pkpd-saturation' && 'saturation' || (github.ref_name == 'pkpd-dose-beta' && 'dose-beta' || (github.ref_name == 'pkpd-sensitivity' && 'sensitivity' || (github.ref_name == 'pkpd-full' && 'full' || 'quick')))) }}')
+          command: addpath('ci'); run_pkpd_ci('${{ env.PKPD_MODE }}')
           startup-options: -logfile ci-logs/matlab.log
 
       - name: Upload results and available logs (also on failure)
@@ -80,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v7
         timeout-minutes: 10
         with:
-          name: pkpd-${{ inputs.mode || (github.ref_name == 'pkpd-saturation' && 'saturation' || (github.ref_name == 'pkpd-dose-beta' && 'dose-beta' || (github.ref_name == 'pkpd-sensitivity' && 'sensitivity' || (github.ref_name == 'pkpd-full' && 'full' || 'quick')))) }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: pkpd-${{ env.PKPD_MODE }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             joint_results/
             ci-logs/

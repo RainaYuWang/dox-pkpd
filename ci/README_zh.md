@@ -130,3 +130,5 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 共享饱和杀伤项的第一轮比较使用 `saturation` 模式或 `pkpd-saturation` 分支，调用 `run_joint_pkpd(8,false,true,true)`。固定参考 PK、生长参数及 D 的最佳 kBF，仅联合拟合共享 beta、Ks，并计算 Ks 条件 profile 和线性极限。详见 [饱和 PD 定义与边界依据](../reports/model_d_saturation_definition.md)。
 
 已完成的饱和 PD 运行、SSE、逐时残差、最低细胞数、晚期偏差与 Ks profile 见 [饱和 PD 结果](../reports/model_d_saturation_results.md)。`ci/analyze_model_d_saturation.py --results <joint_results路径> --output reports` 可重建报告图表。
+
+本轮延迟 PD 使用 `delay-quick` / `delay-full`，对应计算分支 `pkpd-delay-quick` / `pkpd-delay-full`；先通过 quick 后再推送 full。收集结果时同时指定精确提交和 `--mode delay-quick` 或 `--mode delay-full`，避免同提交不同模式混淆。原文定义未核实的时间形式对照会明确跳过，见 [延迟模型定义](../reports/model_d_delay_definition.md) 和 [文献核查](../reports/paper_definition_audit.md)。

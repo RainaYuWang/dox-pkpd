@@ -1,4 +1,4 @@
-function results = run_joint_pkpd(nStarts,doSensitivity,doDoseBeta,doSaturation)
+function results = run_joint_pkpd(nStarts,doSensitivity,doDoseBeta,doSaturation,delayMode)
 % RUN_JOINT_PKPD  SUM-149PT reversible PK / direct cell-killing hypothesis.
 % Open this file and click Run, or type: results = run_joint_pkpd;
 % Base MATLAB only, no extra toolbox. Approximate digitized data are embedded.
@@ -23,7 +23,9 @@ if nargin<1,nStarts=8;end
 if nargin<2,doSensitivity=false;end
 if nargin<3,doDoseBeta=false;end
 if nargin<4,doSaturation=false;end
+if nargin<5,delayMode='';end
 if doSaturation,doDoseBeta=true;end
+if ~isempty(delayMode),delayMode=validatestring(delayMode,{'quick','full'});doDoseBeta=true;end
 validateattributes(nStarts,{'numeric'},{'scalar','integer','>=',1});
 rng(42,'twister'); root=fileparts(mfilename('fullpath'));
 out=fullfile(root,'joint_results');if ~exist(out,'dir'),mkdir(out);end
@@ -217,6 +219,10 @@ end
 if doSaturation
  results.model_d_saturation=saturationDiagnostic(cs,cfg,gD,lo(4),hi(4),...
   nStarts,out,results.model_d_dose_beta);
+ results.elapsed_seconds=toc(runTimer);
+end
+if ~isempty(delayMode)
+ results.model_d_delay=delayStudy(cs,cfg,gD,lo,hi,nStarts,out,results.model_d_dose_beta,delayMode);
  results.elapsed_seconds=toc(runTimer);
 end
 save(fullfile(out,'joint_fit.mat'),'results','C','cs','runsA','runsB','runsC','runsD');
@@ -705,4 +711,242 @@ end
 function dy=rhsSaturation(y,ce,p,Ks,cfg,g)
 dy=rhs(y,ce,p,cfg,g); % The two PK derivatives are exactly the original ones.
 dy(3)=g(1)*(1-exp(y(3))/g(2))-p(4)*y(2)/(1+y(2)/Ks);
+end
+
+function summary=delayStudy(cs,cfg,g,oldLower,oldUpper,nStarts,out,doseBeta,mode)
+% Two serial effect-transit states; no molecular interpretation is imposed.
+kBFRef=0.0049373889028291049;betaRef=0.00048479871747565857;
+lower=[oldLower(3),oldLower(4),1e-4];upper=[oldUpper(3),oldUpper(4),100];
+root=fileparts(mfilename('fullpath'));
+paper=jsondecode(fileread(fullfile(root,'reports','paper_time_definitions.json')));
+if paper.verified
+ assert(isnumeric(paper.origin_in_current_data_hours) && isscalar(paper.origin_in_current_data_hours) && ...
+  isfinite(paper.origin_in_current_data_hours),'PKPD:PaperOrigin','Verified paper origin is missing.');
+end
+fid=fopen(fullfile(out,'paper_time_definitions.json'),'w');fprintf(fid,'%s\n',jsonencode(paper));fclose(fid);
+originalRng=rng;cleanup=onCleanup(@() rng(originalRng)); %#ok<NASGU>
+checks=delayNumericalChecks(cs,cfg,g,kBFRef,betaRef,out);
+fitDir=fullfile(out,'delay_checkpoints');mkdir(fitDir);
+rng(57721,'twister');
+f1=@(x) delayLoss([kBFRef,x],cs,cfg,g);
+[x1,sse1,runs1]=multifit(f1,[betaRef,0.02],lower(2:3),upper(2:3),nStarts,'Delay stage 1',fitDir);
+[xe,se,re]=multifit(f1,[betaRef,upper(3)],lower(2:3),upper(2:3),1,'Delay stage 1 fast',fitDir);
+runs1=[runs1;re];if se<sse1,x1=xe;sse1=se;end
+p1=[kBFRef,x1];
+save(fullfile(out,'delay_stage1.mat'),'p1','sse1','runs1','cfg','g','cs','lower','upper');
+rng(57722,'twister');
+f2=@(x) delayLoss(x,cs,cfg,g);
+[p2,sse2,runs2]=multifit(f2,p1,lower,upper,nStarts,'Delay stage 2',fitDir);
+[xe,se,re]=multifit(f2,[kBFRef,betaRef,upper(3)],lower,upper,1,'Delay stage 2 fast',fitDir);
+runs2=[runs2;re];if se<sse2,p2=xe;sse2=se;end
+profile=table();
+if strcmp(mode,'full')
+ profileDir=fullfile(out,'delay_r_profile_checkpoints');mkdir(profileDir);
+ rs=unique([logspace(log10(lower(3)),log10(upper(3)),21)';...
+  logspace(log10(max(lower(3),p2(3)/4)),log10(min(upper(3),p2(3)*4)),11)';p2(3)]);
+ profileRows=[];
+ for j=1:numel(rs)
+  r=rs(j);rng(57723,'twister');pointTimer=tic;
+  fun=@(x) delayLoss([x,r],cs,cfg,g);
+  folder=fullfile(profileDir,sprintf('point_%03d',j));mkdir(folder);
+  [xp,sp,rp]=multifit(fun,p2(1:2),lower(1:2),upper(1:2),3,...
+   sprintf('Delay r profile %03d',j),folder);
+  near=log(xp./lower(1:2))<0.02 | log(upper(1:2)./xp)<0.02;
+  profileRows=[profileRows;[r,xp,sp,near,toc(pointTimer)]]; %#ok<AGROW>
+  profile=array2table(profileRows,'VariableNames',{'r_per_h','kBF','alpha','scaled_SSE',...
+   'kBF_near_bound','alpha_near_bound','elapsed_seconds'});
+  writetable(profile,fullfile(out,'delay_stage2_r_profile.csv'));
+  save(fullfile(folder,'point.mat'),'r','xp','sp','rp');
+ end
+ [sp,idx]=min(profile.scaled_SSE);
+ if sp<sse2-1e-7
+  guess=[profile.kBF(idx),profile.alpha(idx),profile.r_per_h(idx)];
+  [xe,se,re]=multifit(f2,guess,lower,upper,1,'Delay stage 2 profile polish',fitDir);
+  runs2=[runs2;re];if se<sse2,p2=xe;sse2=se;end
+ end
+end
+save(fullfile(out,'delay_stage2.mat'),'p2','sse2','runs2','profile','cfg','g','cs','lower','upper');
+writetable(array2table(runs1,'VariableNames',{'alpha','r_per_h','scaled_SSE','exitflag','function_evaluations'}),...
+ fullfile(out,'delay_stage1_starts.csv'));
+writetable(array2table(runs2,'VariableNames',{'kBF','alpha','r_per_h','scaled_SSE','exitflag','function_evaluations'}),...
+ fullfile(out,'delay_stage2_starts.csv'));
+P=[p1;p2];nearLow=log(P./lower)<0.02;nearHigh=log(upper./P)<0.02;
+params=array2table([(1:2)',P,[sse1;sse2],nearLow,nearHigh],...
+ 'VariableNames',{'stage','kBF','alpha','r_per_h','scaled_SSE','kBF_near_lower','alpha_near_lower',...
+ 'r_near_lower','kBF_near_upper','alpha_near_upper','r_near_upper'});
+writetable(params,fullfile(out,'delay_parameters.csv'));
+writetable(table({'kBF';'alpha';'r'},{'h^-1';'nM^-1 h^-1';'h^-1'},lower',upper',...
+ 'VariableNames',{'parameter','unit','lower','upper'}),fullfile(out,'delay_bounds.csv'));
+
+% Time-form diagnostics are explicitly gated on verified primary definitions.
+timeA=nan(numel(cs),1);timeB=nan(numel(cs),2);timeRuns=[];
+if paper.verified
+ for j=1:numel(cs)
+  c=cs(j);rng(57724,'twister');
+  for kind=1:2
+   guess=0.01;loT=1e-9;hiT=1;
+   if kind==2,guess=[0.02,0.01];loT=[1e-9,lower(3)];hiT=[1,upper(3)];end
+   folder=fullfile(out,'time_form_checkpoints',sprintf('form_%d_dose_%d',kind,j));mkdir(folder);
+   objective=@(p) timeFormLoss(p,kind,c,g,paper.origin_in_current_data_hours,cfg);
+   [p,sse,rr]=multifit(objective,guess,loT,hiT,nStarts,...
+    sprintf('Time form %d dose %g',kind,c.dose),folder);
+   if kind==1,timeA(j)=p;rr=[rr(:,1),nan(nStarts,1),rr(:,2:end)];else,timeB(j,:)=p;end
+   timeRuns=[timeRuns;[repmat([kind,c.dose],nStarts,1),(1:nStarts)',rr]]; %#ok<AGROW>
+   save(fullfile(folder,'fit.mat'),'p','sse','rr','c','paper','g','cfg','loT','hiT');
+  end
+ end
+ writetable(array2table(timeRuns,'VariableNames',{'form','dose_nM','start','kd_per_h','r_per_h',...
+  'scaled_SSE','exitflag','function_evaluations'}),fullfile(out,'time_form_starts.csv'));
+else
+ fprintf('TIME-FORM A/B NOT RUN: primary-paper time definitions are unverified.\n');
+end
+
+predictions=[];residuals=[];byDose=[];
+active=[1,2,5,6];if paper.verified,active=1:6;end
+for j=1:numel(cs)
+ c=cs(j);t=unique([linspace(0,12,241)';linspace(12,max(c.t),1001)';c.wash;c.t]);
+ for model=active
+  kbf=kBFRef;amplitude=betaRef;r=Inf;
+  if model<=2
+   if model==2,amplitude=doseBeta.dose_beta(j);end
+   Y3=simulate([cfg.oldFE,cfg.oldFB,kbf,amplitude],t,c,cfg,g);
+   Yo3=simulate([cfg.oldFE,cfg.oldFB,kbf,amplitude],c.t,c,cfg,g);
+   Y=[Y3(:,1:2),nan(numel(t),2),Y3(:,3)];No=Yo3(:,3);effect=amplitude*Y3(:,2);
+  elseif model<=4
+   kind=model-2;kbf=NaN;
+   if kind==1,p=timeA(j);else,p=timeB(j,:);r=p(2);end
+   amplitude=p(1);origin=paper.origin_in_current_data_hours;
+   [N,effect]=simulateTimeForm(p,kind,t,c,g,origin,cfg);
+   No=simulateTimeForm(p,kind,c.t,c,g,origin,cfg);Y=[nan(numel(t),4),N];
+  else
+   p=P(model-4,:);kbf=p(1);amplitude=p(2);r=p(3);
+   Y=simulateDelay(p,t,c,cfg,g);Yo=simulateDelay(p,c.t,c,cfg,g);No=Yo(:,5);effect=p(2)*Y(:,4);
+  end
+  rr=No-c.y;
+  predictions=[predictions;[repmat([model,c.dose],numel(t),1),t,Y,effect]]; %#ok<AGROW>
+  residuals=[residuals;[repmat([model,c.dose],numel(c.t),1),c.t,c.y,No,rr,rr/max(c.y)]]; %#ok<AGROW>
+  byDose=[byDose;[model,c.dose,kbf,amplitude,r,sum((rr/max(c.y)).^2),sqrt(mean(rr.^2))]]; %#ok<AGROW>
+ end
+end
+names={'Archived linear D';'Dose-specific beta diagnostic';'Paper-inspired constant-rate diagnostic';...
+ 'Paper-inspired transient-rate diagnostic';'CB delay stage 1 fixed kBF';'CB delay stage 2 shared kBF'};
+scores=nan(6,1);states=repmat({'completed'},6,1);
+for m=active,scores(m)=sum(byDose(byDose(:,1)==m,6));end
+if ~paper.verified,states(3:4)={'not_run_unverified_paper';'not_run_unverified_paper'};end
+summary=table((1:6)',names,states,scores,[0;3;3;6;2;3],...
+ 'VariableNames',{'model_id','model','status','scaled_SSE','parameters_refitted_this_comparison'});
+writetable(summary,fullfile(out,'delay_summary.csv'));
+writetable(array2table(byDose,'VariableNames',{'model_id','dose_nM','kBF','amplitude','r_per_h',...
+ 'scaled_SSE','RMSE_cells'}),fullfile(out,'delay_by_dose.csv'));
+writetable(array2table(predictions,'VariableNames',{'model_id','dose_nM','time_h','CF','CB','E1','E2','N','killing_rate'}),...
+ fullfile(out,'delay_predictions.csv'));
+writetable(array2table(residuals,'VariableNames',{'model_id','dose_nM','time_h','observed_N',...
+ 'predicted_N','residual','scaled_residual'}),fullfile(out,'delay_residuals.csv'));
+save(fullfile(out,'delay_study.mat'),'summary','params','predictions','residuals','byDose',...
+ 'p1','p2','sse1','sse2','runs1','runs2','profile','checks','paper','timeA','timeB','timeRuns',...
+ 'cfg','g','cs','kBFRef','betaRef','lower','upper','mode');
+end
+
+function v=delayLoss(p,cs,cfg,g)
+v=0;
+for j=1:numel(cs)
+ Y=simulateDelay(p,cs(j).t,cs(j),cfg,g);
+ v=v+sum(((Y(:,5)-cs(j).y)/max(cs(j).y)).^2);
+end
+end
+
+function [Y,transition]=simulateDelay(p,t,c,cfg,g)
+t=t(:);assert(all(t>=0));Y=zeros(numel(t),5);transition=struct();
+y0=[0;0;0;0;log(c.y(1))];stop=max(t);
+if stop==0,Y(:,5)=c.y(1);return;end
+opts=odeset('RelTol',cfg.rtol,'AbsTol',cfg.atol);end1=min(c.wash,stop);
+s1=ode15s(@(~,y) rhsDelay(y,c.dose,p,cfg,g),[0,end1],y0,opts);
+m=t<=end1;v=deval(s1,t(m));Y(m,:)=v';
+if any(~m)
+ before=deval(s1,end1);
+ s2=ode15s(@(~,y) rhsDelay(y,0,p,cfg,g),[end1,stop],before,opts);
+ v=deval(s2,t(~m));Y(~m,:)=v';
+ transition.left=before;transition.right=s2.y(:,1);
+ transition.derivative_jump=rhsDelay(before,0,p,cfg,g)-rhsDelay(before,c.dose,p,cfg,g);
+end
+Y(:,5)=exp(Y(:,5));
+if any(~isfinite(Y(:))),error('Nonfinite delay simulation');end
+end
+
+function dy=rhsDelay(y,ce,p,cfg,g)
+% Physical states CF, CB, E1, E2, log(N); E1/E2 are effect-transit states.
+original=rhs([y(1:2);y(5)],ce,[cfg.oldFE,cfg.oldFB,p(1),p(2)],cfg,g);
+dy=[original(1:2);p(3)*(y(2)-y(3));p(3)*(y(3)-y(4));...
+ g(1)*(1-exp(y(5))/g(2))-p(2)*y(4)];
+end
+
+function checks=delayNumericalChecks(cs,cfg,g,kBF,beta,out)
+rows=[];washRows=[];
+for j=1:numel(cs)
+ c=cs(j);t=unique([linspace(0,12,241)';linspace(12,max(c.t),501)';c.t]);
+ Y=simulateDelay([kBF,0,0.01],t,c,cfg,g);expected=logistic(g,t,c.y(1));
+ logisticError=max(abs(Y(:,5)-expected))/max(expected);
+ assert(logisticError<1e-5,'PKPD:DelayLogistic','alpha=0 does not recover logistic growth.');
+ ref=simulate([cfg.oldFE,cfg.oldFB,kBF,beta],t,c,cfg,g);
+ for r=[1,100,1e4]
+  [Y,tr]=simulateDelay([kBF,beta,r],t,c,cfg,g);
+  nError=max(abs(Y(:,5)-ref(:,3)))/max(ref(:,3));
+  eError=max(abs(Y(:,4)-ref(:,2)))/max(ref(:,2));
+  assert(all(Y(:)>=0),'PKPD:DelayNonnegative','Negative state in numerical check.');
+  jumpError=max(abs(tr.left-tr.right));
+  derivativeExpected=[-cfg.kEF*(cfg.VE/cfg.VI)*c.dose;0;0;0;0];
+  derivativeError=max(abs(tr.derivative_jump-derivativeExpected));
+  assert(jumpError==0 && derivativeError<1e-10,'PKPD:DelayWashout','Washout reset or RHS discontinuity is incorrect.');
+  if r==1e4
+   assert(nError<1e-4 && eError<1e-4,'PKPD:DelayFastLimit','Large-r limit disagrees with instantaneous effect.');
+  end
+  rows=[rows;[c.dose,r,logisticError,nError,eError,jumpError,derivativeError,min(Y(:))]]; %#ok<AGROW>
+ end
+ % Independent matrix-exponential check of the linear PK + transit subsystem.
+ p=[kBF,beta,0.01];tt=unique([0;0.05;1;c.wash;6.1;24;100;max(c.t)]);
+ Y=simulateDelay(p,tt,c,cfg,g);A=[-(cfg.oldFE+cfg.oldFB),kBF,0,0;...
+  cfg.oldFB,-kBF,0,0;0,p(3),-p(3),0;0,0,p(3),-p(3)];
+ b=[cfg.kEF*(cfg.VE/cfg.VI)*c.dose;0;0;0];M=[A,b;zeros(1,5)];
+ atWash=expm(M*c.wash)*[zeros(4,1);1];exact=zeros(numel(tt),4);
+ for k=1:numel(tt)
+  if tt(k)<=c.wash,z=expm(M*tt(k))*[zeros(4,1);1];z=z(1:4);
+  else,z=expm(A*(tt(k)-c.wash))*atWash(1:4);end
+  exact(k,:)=z';
+ end
+ exactError=max(abs(Y(:,1:4)-exact),[],1)./max(exact,[],1);
+ assert(all(exactError<1e-5),'PKPD:DelayLinearStates','PK/transit ODEs disagree with matrix exponential.');
+ washRows=[washRows;[c.dose,exactError]]; %#ok<AGROW>
+end
+checks=struct('limits',rows,'matrix_exponential',washRows);
+writetable(array2table(rows,'VariableNames',{'dose_nM','r_per_h','logistic_relative_error',...
+ 'N_vs_instant_relative_error','E2_vs_CB_relative_error','washout_state_jump',...
+ 'washout_derivative_error','minimum_state'}),fullfile(out,'delay_numerical_checks.csv'));
+writetable(array2table(washRows,'VariableNames',{'dose_nM','CF_relative_error','CB_relative_error',...
+ 'E1_relative_error','E2_relative_error'}),fullfile(out,'delay_matrix_exponential_checks.csv'));
+save(fullfile(out,'delay_numerical_checks.mat'),'checks');
+fprintf('DELAY NUMERICAL CHECKS PASSED: logistic, fast limit, continuous washout, nonnegative states, matrix exponential.\n');
+end
+
+function v=timeFormLoss(p,kind,c,g,origin,cfg)
+N=simulateTimeForm(p,kind,c.t,c,g,origin,cfg);
+v=sum(((N-c.y)/max(c.y)).^2);
+end
+
+function [N,effect]=simulateTimeForm(p,kind,t,c,g,origin,cfg)
+t=t(:);N=zeros(size(t));effect=arrayfun(@(u) timeFormRate(u,p,kind,origin),t);
+breaks=unique([0;max(0,min(max(t),origin));max(t)]);z=log(c.y(1));
+N(t==0)=c.y(1);opts=odeset('RelTol',cfg.rtol,'AbsTol',cfg.atol);
+for k=1:numel(breaks)-1
+ left=breaks(k);right=breaks(k+1);
+ % Split at verified effect onset; before it all killing is exactly zero.
+ if right<=origin,rate=@(~) 0;else,rate=@(u) timeFormRate(u,p,kind,origin);end
+ sol=ode15s(@(u,y) g(1)*(1-exp(y)/g(2))-rate(u),[left,right],z,opts);
+ mask=t>left & t<=right;N(mask)=exp(deval(sol,t(mask)))';z=deval(sol,right);
+end
+if any(~isfinite(N)),error('Nonfinite time-form solution');end
+end
+
+function value=timeFormRate(t,p,kind,origin)
+tau=t-origin;
+if tau<0,value=0;elseif kind==1,value=p(1);else,value=p(1)*p(2)*tau*exp(1-p(2)*tau);end
 end

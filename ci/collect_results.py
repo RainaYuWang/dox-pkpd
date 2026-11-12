@@ -15,9 +15,16 @@ def git(*args, check=True):
                           stderr=subprocess.PIPE, check=check)
 
 
+def matches_requested_run(item, mode=None, run_id=None):
+    return ((mode is None or item.get('mode', item.get('matlab', {}).get('mode')) == mode)
+            and (run_id is None or str(item['run_id']) == str(run_id)))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sha', default='HEAD')
+    parser.add_argument('--mode', help='Require this run mode; prevents quick/full result confusion')
+    parser.add_argument('--run-id', help='Optionally select an exact Actions run')
     parser.add_argument('--output', default='cloud-results')
     parser.add_argument('--wait', type=int, default=0, help='Maximum seconds to poll; 0 checks once')
     args = parser.parse_args()
@@ -37,7 +44,8 @@ def main():
                     item = json.loads(git('show', f'{tree}:{path}').stdout)
                     if item['source_sha'] != sha:
                         raise RuntimeError('Result source SHA mismatch')
-                    manifests.append((int(item['run_id']), int(item['attempt']), path, item))
+                    if matches_requested_run(item, args.mode, args.run_id):
+                        manifests.append((int(item['run_id']), int(item['attempt']), path, item))
             if manifests:
                 _, _, path, manifest = max(manifests)
                 if manifest['phase'] == 'finished':

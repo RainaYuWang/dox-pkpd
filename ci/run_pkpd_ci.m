@@ -1,7 +1,7 @@
 function results = run_pkpd_ci(mode)
 % RUN_PKPD_CI Run the unchanged quick/full fit and check its saved outputs.
 if nargin<1,mode='quick';end
-mode=validatestring(mode,{'quick','full','sensitivity','dose-beta','saturation'});
+mode=validatestring(mode,{'quick','full','sensitivity','dose-beta','saturation','delay-quick','delay-full'});
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(root);
 out=fullfile(root,'joint_results');
@@ -13,17 +13,18 @@ mkdir(out);
 timer=tic;
 doSensitivity=strcmp(mode,'sensitivity');
 doSaturation=strcmp(mode,'saturation');
-doDoseBeta=strcmp(mode,'dose-beta') || doSaturation;
-nStarts=2;if ~strcmp(mode,'quick'),nStarts=8;end
+delayMode='';if startsWith(mode,'delay-'),delayMode=mode(7:end);end
+doDoseBeta=strcmp(mode,'dose-beta') || doSaturation || ~isempty(delayMode);
+nStarts=2;if ~any(strcmp(mode,{'quick','delay-quick'})),nStarts=8;end
 status=struct('status','running','mode',mode,'nStarts',nStarts,...
  'seed',42,'matlab_version',version,'platform',computer,...
  'commit',getenv('GITHUB_SHA'),'run_id',getenv('GITHUB_RUN_ID'),...
  'started_utc',char(datetime('now','TimeZone','UTC')),'elapsed_seconds',0);
-status.command=sprintf('run_joint_pkpd(%d,%d,%d,%d)',nStarts,doSensitivity,doDoseBeta,doSaturation);
+status.command=sprintf('run_joint_pkpd(%d,%d,%d,%d,''%s'')',nStarts,doSensitivity,doDoseBeta,doSaturation,delayMode);
 status.rng_algorithm='twister';
 writeStatus(out,status);
 try
- results=run_joint_pkpd(nStarts,doSensitivity,doDoseBeta,doSaturation);
+ results=run_joint_pkpd(nStarts,doSensitivity,doDoseBeta,doSaturation,delayMode);
  % These are runtime/output checks, not tests of predictive scientific validity.
  required={'01_cell_fits.png','02_residuals.png','03_PK_reference.png',...
   '04_equivalent_parameters.png','representative_parameters.csv',...
@@ -171,6 +172,43 @@ try
   status.saturation_SSE=sat.parameters.scaled_SSE;
   status.saturation_large_Ks_max_N_relative_difference=max(large(:,4));
   status.saturation_exact_limit_max_N_relative_difference=max(exact(:,4));
+ end
+ if ~isempty(delayMode)
+  delayed=load(fullfile(out,'delay_study.mat'));
+  assert(isequal(delayed.cfg,diagnostic.cfg) && isequal(delayed.g,diagnostic.g) && ...
+   isequal(delayed.cs,diagnostic.cs) && delayed.kBFRef==diagnostic.kBF,...
+   'PKPD:DelayFixed','Reference PK, growth, data or stage-1 kBF changed.');
+  assert(abs(delayed.summary.scaled_SSE(1)-status.dose_beta_shared_SSE)<1e-10 && ...
+   abs(delayed.summary.scaled_SSE(2)-status.dose_beta_separate_SSE)<1e-10,...
+   'PKPD:DelayComparators','Archived/reference comparators changed.');
+  assert(size(delayed.runs1,1)==nStarts+1 && size(delayed.runs2,1)>=nStarts+1,...
+   'PKPD:DelayCount','Missing delayed-model starts.');
+  assert(delayed.sse2<=delayed.sse1+1e-5,'PKPD:DelayNested','Stage 2 is worse than its stage-1 start.');
+  active=[1,2,5,6];
+  if delayed.paper.verified,active=1:6;
+  else
+   assert(all(isnan(delayed.summary.scaled_SSE(3:4))) && isempty(delayed.timeRuns),...
+    'PKPD:UnverifiedPaper','Time-form diagnostics ran with an unverified origin.');
+  end
+  for m=active
+   mask=delayed.residuals(:,1)==m;
+   assert(abs(sum(delayed.residuals(mask,7).^2)-delayed.summary.scaled_SSE(m))<1e-10,...
+    'PKPD:DelayResiduals','Residuals and summary disagree.');
+  end
+  mask=ismember(delayed.predictions(:,1),[5,6]);states=delayed.predictions(mask,4:8);
+  assert(all(isfinite(states(:))) && all(states(:)>=0) && all(states(:,5)>0),...
+   'PKPD:DelayStates','Nonfinite/negative states or artificial extinction in best predictions.');
+  if strcmp(delayMode,'full')
+   assert(height(delayed.profile)>=20 && all(isfinite(delayed.profile.scaled_SSE)),...
+    'PKPD:DelayProfile','Stage-2 r profile missing/invalid.');
+   assert(min(delayed.profile.scaled_SSE)>=delayed.sse2-1e-5,...
+    'PKPD:DelayProfileOptimum','Profile found a better region that needs refinement.');
+  end
+  status.delay_stage1_SSE=delayed.sse1;status.delay_stage2_SSE=delayed.sse2;
+  status.delay_stage1_parameters=delayed.p1;status.delay_stage2_parameters=delayed.p2;
+  status.delay_stage1_starts=size(delayed.runs1,1);status.delay_stage2_starts=size(delayed.runs2,1);
+  status.delay_r_profile_points=height(delayed.profile);status.paper_definitions_verified=delayed.paper.verified;
+  status.delay_numerical_checks='passed';
  end
  status.profile_points=height(profile);
  status.status='success';

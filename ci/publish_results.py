@@ -28,6 +28,7 @@ def main():
     prefix = f'runs/{sha}/{run_id}-{attempt}/'
     ref = 'refs/heads/pkpd-results'
     manifest = dict(source_sha=sha, run_id=run_id, attempt=attempt,
+                    mode=os.environ.get('PKPD_MODE'), source_ref=os.environ.get('GITHUB_REF'),
                     run_url=f'https://github.com/{repo}/actions/runs/{run_id}',
                     phase=args.phase, setup_outcome=args.setup_outcome,
                     fit_outcome=args.fit_outcome, updated_unix=time.time())
