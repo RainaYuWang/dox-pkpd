@@ -2,11 +2,20 @@
   "doi": "10.1038/s41598-017-05902-z",
   "verified": false,
   "origin_in_current_data_hours": null,
+  "dose_start_in_current_data_hours": null,
   "time_origin_definition": null,
   "D_definition": null,
   "theta_definition": null,
   "initial_cell_number_definition": null,
   "fitting_interval_definition": null,
   "source_urls": [],
-  "reason": "No article or supplement file is present in the repository or workspace. Nature and Europe PMC requests returned CONNECT 403 from the current environment proxy. The README treatment-start assertion has not been independently checked against the paper. Time-form comparators must not run until the primary definitions are verified."
+  "source_evidence": {},
+  "source_candidates": [
+    {
+      "url": "https://github.com/mckennamt/DoxorubicinPKPD/tree/76952a6b8e6cb412ee0081b89ca1ccba61a00537",
+      "kind": "public code repository whose README cites the target article",
+      "primary_article_or_supplement_obtained": false
+    }
+  ],
+  "reason": "No primary article or supplementary text has been obtained. The current enforced network revision is still 1 with no custom literature hosts; previously denied Nature/Europe PMC requests were not repeated. A public code repository explicitly citing the target article was found and inspected, but contains no article/supplement. Its implementation clues do not establish the paper definitions or mapping to the current digitized time axis. Formal A/B comparisons remain disabled pending primary-source review."
 }

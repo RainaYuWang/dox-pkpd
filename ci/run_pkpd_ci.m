@@ -1,7 +1,8 @@
 function results = run_pkpd_ci(mode)
 % RUN_PKPD_CI Run the unchanged quick/full fit and check its saved outputs.
 if nargin<1,mode='quick';end
-mode=validatestring(mode,{'quick','full','sensitivity','dose-beta','saturation','delay-quick','delay-full'});
+mode=validatestring(mode,{'quick','full','sensitivity','dose-beta','saturation','delay-quick','delay-full','time-quick','time-full'});
+if startsWith(mode,'time-'),results=run_time_form_ci(mode);return;end
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(root);
 out=fullfile(root,'joint_results');

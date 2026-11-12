@@ -12,3 +12,5 @@ PD-form comparison: [shared saturating killing and Ks profile](reports/model_d_s
 
 Current study (saturation work paused): [CB-driven two-stage delay results](reports/model_d_delay_results.md),
 [methods](reports/model_d_delay_definition.md), and [primary-paper definition audit](reports/paper_definition_audit.md).
+
+Paper-inspired A/B time-form diagnostics: [standalone preparation and remaining source blocker](reports/time_form_status.md).

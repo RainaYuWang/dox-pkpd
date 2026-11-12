@@ -1,4 +1,5 @@
 /joint_results/
 /ci-logs/
 /cloud-results/
+/baseline-results/
 /ci/__pycache__/
