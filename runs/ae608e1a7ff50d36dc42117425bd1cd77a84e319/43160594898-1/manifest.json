@@ -1,0 +1,16 @@
+{
+  "source_sha": "ae608e1a7ff50d36dc42117425bd1cd77a84e319",
+  "run_id": "43160594898",
+  "attempt": "1",
+  "mode": "sat-full",
+  "source_ref": "refs/heads/pkpd-sat-full",
+  "run_url": "https://github.com/RainaYuWang/dox-pkpd/actions/runs/43160594898",
+  "phase": "running",
+  "setup_outcome": "pending",
+  "fit_outcome": "pending",
+  "updated_unix": 1794460763.9665282,
+  "archive_sha256": "4dbef2600e557da7980c62e216d6e5118759118bca14415c11074166fa146acf",
+  "files": [
+    "ci-logs/context.txt"
+  ]
+}
