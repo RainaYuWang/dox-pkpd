@@ -1,5 +1,6 @@
 function results=run_saturation_link(mode)
 % Shared instantaneous nonlinear PK-PD; no damage states or changed growth.
+% Full-run release: identical numerical code to successful quick 43160254529.
 mode=validatestring(mode,{'sat-quick','sat-full'});
 root=fileparts(mfilename('fullpath'));out=fullfile(root,'joint_results');
 assert(~exist(out,'dir'),'Move previous joint_results before running.');mkdir(out);
