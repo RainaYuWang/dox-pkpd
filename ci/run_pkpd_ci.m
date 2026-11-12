@@ -185,7 +185,18 @@ try
    'PKPD:DelayCount','Missing delayed-model starts.');
   assert(delayed.sse2<=delayed.sse1+1e-5,'PKPD:DelayNested','Stage 2 is worse than its stage-1 start.');
   active=[1,2,5,6];
-  if delayed.paper.verified,active=1:6;
+  if delayed.paper.verified
+   active=1:6;
+   assert(size(delayed.timeRuns,1)==6*nStarts && ...
+    all(isfinite(delayed.summary.scaled_SSE)) && ...
+    all(delayed.summary.scaled_SSE<1e9),...
+    'PKPD:TimeForms','Missing or invalid verified time-form fits.');
+   timeMask=ismember(delayed.predictions(:,1),[3,4]);
+   assert(all(isfinite(delayed.predictions(timeMask,8))) && ...
+    all(delayed.predictions(timeMask,8)>0),...
+    'PKPD:TimeFormStates','Invalid time-form population output.');
+   status.time_form_starts=size(delayed.timeRuns,1);
+   status.time_form_SSE=delayed.summary.scaled_SSE(3:4)';
   else
    assert(all(isnan(delayed.summary.scaled_SSE(3:4))) && isempty(delayed.timeRuns),...
     'PKPD:UnverifiedPaper','Time-form diagnostics ran with an unverified origin.');

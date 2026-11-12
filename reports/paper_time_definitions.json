@@ -1,12 +1,28 @@
 {
   "doi": "10.1038/s41598-017-05902-z",
-  "verified": false,
-  "origin_in_current_data_hours": null,
-  "time_origin_definition": null,
-  "D_definition": null,
-  "theta_definition": null,
-  "initial_cell_number_definition": null,
-  "fitting_interval_definition": null,
-  "source_urls": [],
-  "reason": "No article or supplement file is present in the repository or workspace. Nature and Europe PMC requests returned CONNECT 403 from the current environment proxy. The README treatment-start assertion has not been independently checked against the paper. Time-form comparators must not run until the primary definitions are verified."
+  "verified": true,
+  "origin_in_current_data_hours": 0,
+  "time_origin_definition": "Drug application/treatment at t=0; pretreatment t<0. Main article pp.5-7. Washout occurs 6, 12 or 24 h later; it is not the PD time origin.",
+  "D_definition": "Treatment-condition summary combining concentration and exposure duration, represented by CB,max (nM) and extracellular AUC (nM h); not just nominal extracellular concentration. Main article pp.6-7.",
+  "theta_definition": "Cell-line control theta first estimated with kp. kp fixed for treated fits, whereas theta estimated per condition for each A/B model, bounded 0.7 to 1.3 times control theta. Main p.7; supplement pp.3-4.",
+  "initial_cell_number_definition": "Supplement p.3: initialized with the cell count at the timepoint following treatment for each individual replicate. N0 is not listed among fitted PD parameters. This does not establish an exact timestamp for the first digitized point.",
+  "fitting_interval_definition": "Pretreatment and untreated controls estimate growth; post-treatment counts fit PD. Supplement p.3: all timepoints following the initialization count. Main p.5 monitoring daily for at least 30 days; exact per-replicate timestamps are not supplied here.",
+  "source_urls": [
+    "https://www.nature.com/articles/s41598-017-05902-z"
+  ],
+  "source_files": [
+    {
+      "name": "41598_2017_Article_5902(4).pdf",
+      "sha256": "ebc6aa71aa18cefdf038dd7b56642ac7caa856b0796ef089c72094d873a89107",
+      "pages": "5-7"
+    },
+    {
+      "name": "41598_2017_5902_MOESM1_ESM(4).pdf",
+      "sha256": "693f8d70e9b5987ef03b514640de66e46e1266c14cd25f302b87b71b65fe446d",
+      "pages": "3-4"
+    }
+  ],
+  "current_data_convention": "Retain current digitized axis labeled hours from treatment start, first point at 0 and all 32 observations. No original replicate-level N0/timestamps are available. The origin mapping is a stated convention for this diagnostic, not recovery of raw experimental sampling.",
+  "comparison_differences": "Separated growth/killing; fixed control theta/kp; per-dose max-count residual scaling; no smoothing regularization; positive kd; broad existing diagnostic r bounds. Not an original-paper reproduction.",
+  "reason": "Verified from user-uploaded local primary PDFs in this chat; the prior cloud environment lacked these attachments. No network-settings change is needed for this verification."
 }
