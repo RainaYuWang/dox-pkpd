@@ -1,0 +1,4 @@
+model_id,model,scaled_SSE,conditional_free_PD_parameters
+1,Linear shared beta D,0.993969254952416,1
+2,Dose-specific beta diagnostic,0.323945132752931,3
+3,Shared saturating beta Ks,0.551707750980531,2

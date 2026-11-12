@@ -7,3 +7,5 @@ Model D: [fixed-PK sensitivity results](reports/model_d_sensitivity_results.md)
 and [analysis definition](reports/model_d_sensitivity_definition.md).
 
 Shared-beta assumption: [dose-specific beta diagnostic](reports/model_d_dose_beta_results.md).
+
+PD-form comparison: [shared saturating killing and Ks profile](reports/model_d_saturation_results.md).

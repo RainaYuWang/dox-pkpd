@@ -1,0 +1,3 @@
+parameter,unit,lower,upper
+beta,nM^-1 h^-1,1e-09,0.1
+Ks,nM,0.001,100000000

@@ -128,3 +128,5 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 已完成的实际诊断、各剂量 beta/SSE、残差形状、625 nM 早期下降及数值审计见 [诊断结果](../reports/model_d_dose_beta_results.md)。图表可由 `ci/analyze_model_d_dose_beta.py --results <joint_results路径> --output reports` 重建。
 
 共享饱和杀伤项的第一轮比较使用 `saturation` 模式或 `pkpd-saturation` 分支，调用 `run_joint_pkpd(8,false,true,true)`。固定参考 PK、生长参数及 D 的最佳 kBF，仅联合拟合共享 beta、Ks，并计算 Ks 条件 profile 和线性极限。详见 [饱和 PD 定义与边界依据](../reports/model_d_saturation_definition.md)。
+
+已完成的饱和 PD 运行、SSE、逐时残差、最低细胞数、晚期偏差与 Ks profile 见 [饱和 PD 结果](../reports/model_d_saturation_results.md)。`ci/analyze_model_d_saturation.py --results <joint_results路径> --output reports` 可重建报告图表。
