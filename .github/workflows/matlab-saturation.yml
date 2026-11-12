@@ -8,7 +8,7 @@ on:
       - '**/*.m'
       - 'ci/*.py'
       - 'reports/paper_time_definitions.json'
-      - '.github/workflows/matlab-pkpd.yml'
+      - '.github/workflows/matlab-saturation.yml'
   workflow_dispatch:
     inputs:
       mode:
