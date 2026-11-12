@@ -1,0 +1,4 @@
+parameter,unit,positive_lower,upper,zero_also_compared
+kd_A,h^-1,1e-09,1,1
+kd_B,h^-1,1e-09,1,1
+r,h^-1,0.0001,100,0

@@ -1,0 +1,7 @@
+model_id,model,status,scaled_SSE,parameters_refitted_this_comparison
+1,Archived linear D,completed,0.993969254952416,0
+2,Dose-specific beta diagnostic,completed,0.323945132752931,3
+3,Paper-inspired constant-rate diagnostic,not_run_unverified_paper,NaN,3
+4,Paper-inspired transient-rate diagnostic,not_run_unverified_paper,NaN,6
+5,CB delay stage 1 fixed kBF,completed,0.99395110666782,2
+6,CB delay stage 2 shared kBF,completed,0.993937205263434,3

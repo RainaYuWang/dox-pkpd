@@ -132,3 +132,5 @@ Codex 容器本身未安装 MATLAB；已在 GitHub-hosted Linux runner 上实际
 自动归因于缺少 damage-memory。
 
 模型 D 的实际运行、D/C 对照及条件 profile 见 [D 结果报告](reports/model_d_results.md)。
+
+已完成原文时间形式 A/B 的独立 MATLAB quick/full，保留旧 D、分剂量 beta 和延迟结果而未重跑。A/B 的训练 SSE 为 1.540788 / 0.434762；B 仍比分剂量 beta 的 0.323945 高，625 nM 早期由过低变为过高。原文定义、各剂量参数、残差、局部图和自动取回命令见 [时间形式诊断结果](reports/time_form_results.md)。

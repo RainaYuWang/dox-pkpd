@@ -1,0 +1,7 @@
+model_id,model,scaled_SSE,parameters_refitted_this_comparison,previous_fit_parameters
+1,Archived linear D,0.993969254952416,0,2
+2,Archived dose-specific beta,0.323945132752931,0,3
+3,Paper-inspired constant-rate diagnostic,1.54078813983909,3,0
+4,Paper-inspired transient-rate diagnostic,0.434762238844815,6,0
+5,Archived delay stage 1,0.993951106667819,0,2
+6,Archived delay stage 2,0.993937205263435,0,3

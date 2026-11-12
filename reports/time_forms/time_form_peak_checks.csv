@@ -1,0 +1,4 @@
+r_per_h,peak_tau_h,peak_rate,peak_rate_error
+0.0001,10000,0.02,0
+0.01,100,0.02,0
+100,0.01,0.02,0

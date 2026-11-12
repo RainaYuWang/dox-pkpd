@@ -1,0 +1,64 @@
+{
+  "doi": "10.1038/s41598-017-05902-z",
+  "verified": true,
+  "origin_in_current_data_hours": 0,
+  "dose_start_in_current_data_hours": 0,
+  "time_origin_definition": "The paper defines treatment at t=0 (main pp.6-7, Eq.5A/B) and explicitly says doxorubicin treatment at t=0 (p.8). For the current Fig.4 digitization the zero tick is retained as data time 0; thus tau = data time - 0, dose time = data time - 0. The 6 h media replacement does not restart either clock.",
+  "D_definition": "D denotes a summary of a treatment condition combining concentration and exposure duration (main p.6). Main p.7 uses both CB,max (maximum bound concentration simulated with the paper PK model) and extracellular AUC = integral CE dt (concentration x duration for pulses) to describe D. D is neither just administered nM nor the instantaneous CB(t). This diagnostic fits each of the three existing 6 h concentration groups independently, without importing simulated PK as data.",
+  "theta_definition": "The paper first fits cell-line kp and theta to pre-treatment and untreated controls, then fixes kp and re-estimates theta with kd,A or with kd,B,r for each treatment condition (main p.7). Supplement p.4 bounds treatment theta at 0.7-1.3 times control theta and notes weak resolution at regressing populations. This diagnostic instead fixes both kp and theta to our archived control estimates as requested.",
+  "initial_cell_number_definition": "Supplement p.3 initializes each replicate with the cell count at the timepoint following treatment; main p.8 likewise initializes predictions with first post-treatment measurements. No exact universal elapsed-hour value for this first measurement is stated, and it must not be assumed to be washout. Our diagnostic retains the existing per-dose initial observation at current data time 0 (3636.36363636364,4606.06060606061,4484.84848484848 cells) and does not fit, shift, or reset N.",
+  "fitting_interval_definition": "Main p.5 describes at least three pretreatment days, exposure for 6/12/24 h then media replacement, daily imaging for at least 30 days. Main p.7 fits growth to pretreatment/untreated controls and response to post-treatment data; supplement p.3 uses the initial post-treatment count and all subsequent timepoints. Supplement Fig.S3 p.8 truncates control curves at carrying capacity. The current diagnostic preserves only the existing 32 digitized observations (no pretreatment observations are currently included), dose-specific windows 0-436.363636,0-414.545455,0-533.333333 h; no new points or fit-window changes. Treatment-period data are not separately reselected and the PD clock is not restarted at washout.",
+  "source_urls": [
+    "https://doi.org/10.1038/s41598-017-05902-z",
+    "https://www.nature.com/articles/s41598-017-05902-z"
+  ],
+  "source_evidence": {
+    "time_origin_definition": {
+      "source": "41598_2017_Article_5902.pdf",
+      "location": "pp.6-7 Treatment response model, Eq.(5A)-(5B); p.8 Doxorubicin treatment response; p.6 Fig.4 axis",
+      "excerpt": "Prior to treatment (i.e., t < 0) ... Following treatment at t = 0 ... Prior to treatment with doxorubicin at t = 0"
+    },
+    "D_definition": {
+      "source": "41598_2017_Article_5902.pdf",
+      "location": "p.6 Treatment response model; p.7 paragraph beginning The maximum bound concentration",
+      "excerpt": "The maximum bound concentration of doxorubicin (CB,max) and the area under the curve of the extracellular concentration timecourse (AUC) were both used to summarize each treatment condition (D in Eqs (4 and 5))."
+    },
+    "theta_definition": {
+      "source": "41598_2017_Article_5902.pdf; 41598_2017_5902_MOESM1_ESM.pdf",
+      "location": "main p.7 Treatment response model; supplement p.4 Treatment response model fitting",
+      "excerpt": "parameter estimates ... obtained for kd,A and theta in Eq. (5A), and kd,B, r, and theta in Eq. (5B) ... theta was bounded between [0.7 theta, 1.3 theta]"
+    },
+    "initial_cell_number_definition": {
+      "source": "41598_2017_5902_MOESM1_ESM.pdf",
+      "location": "p.3 Treatment response model fitting",
+      "excerpt": "The model was initialized with the cell count at the timepoint following treatment for each individual replicate, and all subsequent timepoints were considered in the model fit."
+    },
+    "fitting_interval_definition": {
+      "source": "41598_2017_Article_5902.pdf; 41598_2017_5902_MOESM1_ESM.pdf",
+      "location": "main pp.5,7; supplement p.3 and p.8 Fig.S3 caption",
+      "excerpt": "Fixing kp for each cell line, the treatment response models ... were then fit to the post-treatment data. ... all subsequent timepoints were considered in the model fit. ... Data are truncated when cell populations reached carrying capacity."
+    }
+  },
+  "source_candidates": [
+    {
+      "url": "https://github.com/mckennamt/DoxorubicinPKPD/tree/76952a6b8e6cb412ee0081b89ca1ccba61a00537",
+      "kind": "public code repository whose README cites the target article",
+      "primary_article_or_supplement_obtained": false
+    }
+  ],
+  "reason": "Verified directly against the two user-supplied complete PDFs. No network-policy change is needed to read them. The paper time definition is confirmed; the diagnostic deliberately retains our current initial observation, growth parameters, separated growth/killing equation, residual scaling and fitting data, rather than reproducing the full paper model.",
+  "source_documents": [
+    {
+      "file": "references/papers/41598_2017_Article_5902.pdf",
+      "sha256": "ebc6aa71aa18cefdf038dd7b56642ac7caa856b0796ef089c72094d873a89107",
+      "pages": 14,
+      "provided_by": "user upload; complete primary document"
+    },
+    {
+      "file": "references/papers/41598_2017_5902_MOESM1_ESM.pdf",
+      "sha256": "693f8d70e9b5987ef03b514640de66e46e1266c14cd25f302b87b71b65fe446d",
+      "pages": 17,
+      "provided_by": "user upload; complete primary document"
+    }
+  ]
+}
