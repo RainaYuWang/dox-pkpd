@@ -1,7 +1,7 @@
 function results = run_pkpd_ci(mode)
 % RUN_PKPD_CI Run the unchanged quick/full fit and check its saved outputs.
 if nargin<1,mode='quick';end
-mode=validatestring(mode,{'quick','full','sensitivity'});
+mode=validatestring(mode,{'quick','full','sensitivity','dose-beta'});
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(root);
 out=fullfile(root,'joint_results');
@@ -12,16 +12,17 @@ end
 mkdir(out);
 timer=tic;
 doSensitivity=strcmp(mode,'sensitivity');
+doDoseBeta=strcmp(mode,'dose-beta');
 nStarts=2;if ~strcmp(mode,'quick'),nStarts=8;end
 status=struct('status','running','mode',mode,'nStarts',nStarts,...
  'seed',42,'matlab_version',version,'platform',computer,...
  'commit',getenv('GITHUB_SHA'),'run_id',getenv('GITHUB_RUN_ID'),...
  'started_utc',char(datetime('now','TimeZone','UTC')),'elapsed_seconds',0);
-status.command=sprintf('run_joint_pkpd(%d,%d)',nStarts,doSensitivity);
+status.command=sprintf('run_joint_pkpd(%d,%d,%d)',nStarts,doSensitivity,doDoseBeta);
 status.rng_algorithm='twister';
 writeStatus(out,status);
 try
- results=run_joint_pkpd(nStarts,doSensitivity);
+ results=run_joint_pkpd(nStarts,doSensitivity,doDoseBeta);
  % These are runtime/output checks, not tests of predictive scientific validity.
  required={'01_cell_fits.png','02_residuals.png','03_PK_reference.png',...
   '04_equivalent_parameters.png','representative_parameters.csv',...
@@ -81,6 +82,44 @@ try
   assert(max(refs.scaled_SSE)-min(refs.scaled_SSE)<1e-10,...
    'PKPD:SensitivityRepeat','Identical reference fits disagree.');
   status.sensitivity_cases=height(sens);status.sensitivity_starts=height(starts);
+ end
+ if doDoseBeta
+  diagnostic=load(fullfile(out,'model_d_dose_beta.mat'));
+  assert(diagnostic.kBF==0.0049373889028291049 && ...
+   diagnostic.sharedBeta==0.00048479871747565857,...
+   'PKPD:DoseBetaReference','Archived D values must remain fixed.');
+  assert(isequal(diagnostic.g,results.model_d_growth) && ...
+   isequal(diagnostic.cfg,results.config),...
+   'PKPD:DoseBetaFixed','D reference PK and growth changed.');
+  doseSummary=diagnostic.summary;
+  assert(height(doseSummary)==3 && size(diagnostic.allRuns,1)==3*nStarts,...
+   'PKPD:DoseBetaCount','Missing dose-specific beta fits.');
+  savedInputs=load(fullfile(out,'run_inputs.mat'),'cs');
+  assert(isequal(diagnostic.cs,savedInputs.cs),'PKPD:DoseBetaData','Data changed.');
+  assert(abs(sum(doseSummary.shared_scaled_SSE)-0.9939692549524157)<1e-9,...
+   'PKPD:DoseBetaBaseline','Archived shared-beta SSE was not reproduced.');
+  assert(all(doseSummary.dose_scaled_SSE<=doseSummary.shared_scaled_SSE+1e-8),...
+   'PKPD:DoseBetaNested','Dose beta fit is worse than its shared-beta starting point.');
+  assert(all(abs(doseSummary.dose_scaled_SSE-doseSummary.scan_scaled_SSE)<1e-7),...
+   'PKPD:DoseBetaOptimum','Multistart and independent beta scan disagree.');
+  vals=diagnostic.predictions(:,4:end);
+  assert(all(isfinite(vals(:))) && all(diagnostic.predictions(:,6)>0),...
+   'PKPD:DoseBetaCurves','Invalid diagnostic trajectories.');
+  for doseId=1:3
+   for modelId=1:2
+    mask=diagnostic.residuals(:,1)==modelId & ...
+     diagnostic.residuals(:,2)==doseSummary.dose_nM(doseId);
+    expected=doseSummary.shared_scaled_SSE(doseId);
+    if modelId==2,expected=doseSummary.dose_scaled_SSE(doseId);end
+    assert(abs(sum(diagnostic.residuals(mask,7).^2)-expected)<1e-10,...
+     'PKPD:DoseBetaResiduals','Residuals and objective disagree.');
+   end
+  end
+  checkpointsDose=dir(fullfile(out,'dose_beta_checkpoints','dose_*','*_start_*.mat'));
+  assert(numel(checkpointsDose)==3*nStarts,'PKPD:DoseBetaCheckpoints','Missing start checkpoints.');
+  status.dose_beta_starts=size(diagnostic.allRuns,1);
+  status.dose_beta_shared_SSE=sum(doseSummary.shared_scaled_SSE);
+  status.dose_beta_separate_SSE=sum(doseSummary.dose_scaled_SSE);
  end
  status.profile_points=height(profile);
  status.status='success';

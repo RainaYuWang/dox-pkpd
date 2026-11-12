@@ -122,3 +122,5 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 固定 PK 敏感性分析使用 `sensitivity` 模式，或推送到 `pkpd-sensitivity`；它调用 `run_joint_pkpd(8,true)`，追加 9 个情形、每个 8 起点的拟合，并输出有效杀伤速率。详见 [敏感性定义](../reports/model_d_sensitivity_definition.md)。
 
 已完成的 MATLAB 敏感性运行、参数/曲线比较及自动取回后重建图表的命令见 [敏感性结果](../reports/model_d_sensitivity_results.md)。分析脚本为 `ci/analyze_model_d_sensitivity.py --results <joint_results路径> --output reports`，依赖 numpy>=2、scipy、matplotlib。
+
+共享 beta 假设的诊断使用 `dose-beta` 模式，或将相关代码推送至 `pkpd-dose-beta`。调用 `run_joint_pkpd(8,false,true)`，保持归档 D 的参考 PK、生长参数和最佳 kBF，追加三个剂量各自的 beta 拟合及一维扫描复核。输出、失败保存及 Git 自动取回沿用相同流程。详见 [分剂量 beta 诊断定义](../reports/model_d_dose_beta_definition.md)。

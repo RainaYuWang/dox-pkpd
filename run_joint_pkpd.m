@@ -1,4 +1,4 @@
-function results = run_joint_pkpd(nStarts,doSensitivity)
+function results = run_joint_pkpd(nStarts,doSensitivity,doDoseBeta)
 % RUN_JOINT_PKPD  SUM-149PT reversible PK / direct cell-killing hypothesis.
 % Open this file and click Run, or type: results = run_joint_pkpd;
 % Base MATLAB only, no extra toolbox. Approximate digitized data are embedded.
@@ -21,6 +21,7 @@ function results = run_joint_pkpd(nStarts,doSensitivity)
 % Sparse manual digitization, not raw data. See README_zh.md for limitations.
 if nargin<1,nStarts=8;end
 if nargin<2,doSensitivity=false;end
+if nargin<3,doDoseBeta=false;end
 validateattributes(nStarts,{'numeric'},{'scalar','integer','>=',1});
 rng(42,'twister'); root=fileparts(mfilename('fullpath'));
 out=fullfile(root,'joint_results');if ~exist(out,'dir'),mkdir(out);end
@@ -205,6 +206,10 @@ results=struct('config',cfg,'growth',g,'summary',summary,'equivalent_sets',eq,..
  'model_d_growth',gD,'model_d_fixed',fixedTable,'model_d_profile',profileD);
 if doSensitivity
  results.model_d_sensitivity=sensitivityFixedPK(cs,cfg,gD,lo,hi,nStarts,out);
+ results.elapsed_seconds=toc(runTimer);
+end
+if doDoseBeta
+ results.model_d_dose_beta=doseBetaDiagnostic(cs,cfg,gD,lo(4),hi(4),nStarts,out);
  results.elapsed_seconds=toc(runTimer);
 end
 save(fullfile(out,'joint_fit.mat'),'results','C','cs','runsA','runsB','runsC','runsD');
@@ -452,4 +457,80 @@ writetable(array2table(byDose,'VariableNames',{'case_id','dose_nM','scaled_SSE',
  fullfile(out,'model_d_sensitivity_by_dose.csv'));
 save(fullfile(out,'model_d_sensitivity.mat'),'summary','allRuns','predictions',...
  'residuals','byDose','cfg','g','cs','lo','hi','nStarts');
+end
+
+function summary=doseBetaDiagnostic(cs,cfg,g,lower,upper,nStarts,out)
+% Diagnostic only: freeze the archived reference D, fit one beta per dose.
+% Exact doubles from run 43101764836 model_d_fit.mat, commit 950b8e5.
+kBF=0.0049373889028291049;sharedBeta=0.00048479871747565857;
+sourceRun='43101764836';sourceCommit='950b8e52466c0bc98cff98ce759eea70c5b1929b';
+fixed=table(cfg.kEF,cfg.oldFE,cfg.oldFB,cfg.VI,cfg.VE,g(1),g(2),kBF,sharedBeta,...
+ 'VariableNames',{'kEF','kFE','kFB','VI','VE','kp','theta','kBF','shared_beta'});
+writetable(fixed,fullfile(out,'model_d_dose_beta_fixed.csv'));
+originalRng=rng;rngCleanup=onCleanup(@() rng(originalRng)); %#ok<NASGU>
+rows=[];allRuns=[];predictions=[];residuals=[];
+for j=1:numel(cs)
+ c=cs(j);timer=tic;
+ checkpointDir=fullfile(out,'dose_beta_checkpoints',sprintf('dose_%02d',j));
+ if ~exist(checkpointDir,'dir'),mkdir(checkpointDir);end
+ rng(161803,'twister');
+ fun=@(beta) loss([cfg.oldFE,cfg.oldFB,kBF,beta],c,cfg,g);
+ [beta,sse,runs]=multifit(fun,sharedBeta,lower,upper,nStarts,...
+  sprintf('D dose beta %g nM',c.dose),checkpointDir);
+ % Independent one-dimensional scan/refinement checks the multistart optimum.
+ % It uses the existing profileBeta helper, unchanged bounds and ODE accuracy.
+ [checkBeta,checkSSE,checkFlag,checkEvals,candidates]=profileBeta(fun,lower,upper,sharedBeta);
+ sharedSSE=fun(sharedBeta);
+ nearLower=log(beta/lower)<0.02;nearUpper=log(upper/beta)<0.02;
+ rows=[rows;[c.dose,sharedBeta,beta,sharedSSE,sse,nearLower,nearUpper,...
+  checkBeta,checkSSE,checkFlag,checkEvals,toc(timer)]]; %#ok<AGROW>
+ allRuns=[allRuns;[repmat(c.dose,nStarts,1),(1:nStarts)',runs]]; %#ok<AGROW>
+ save(fullfile(checkpointDir,'dose_fit.mat'),'beta','sse','runs','kBF','sharedBeta',...
+  'sharedSSE','c','cfg','g','lower','upper','checkBeta','checkSSE','checkFlag',...
+  'checkEvals','candidates','sourceRun','sourceCommit');
+ t=unique([linspace(0,12,241)';linspace(12,max(c.t),1001)';c.wash;c.t]);
+ for modelId=1:2
+  currentBeta=sharedBeta;if modelId==2,currentBeta=beta;end
+  p=[cfg.oldFE,cfg.oldFB,kBF,currentBeta];
+  Y=simulate(p,t,c,cfg,g);
+  predictions=[predictions;[repmat([modelId,c.dose],numel(t),1),t,Y,...
+   currentBeta*Y(:,2)]]; %#ok<AGROW>
+  Yo=simulate(p,c.t,c,cfg,g);rr=Yo(:,3)-c.y;
+  residuals=[residuals;[repmat([modelId,c.dose],numel(c.t),1),c.t,c.y,...
+   Yo(:,3),rr,rr/max(c.y)]]; %#ok<AGROW>
+ end
+ summary=array2table(rows,'VariableNames',{'dose_nM','shared_beta','dose_beta',...
+  'shared_scaled_SSE','dose_scaled_SSE','beta_near_lower','beta_near_upper',...
+  'scan_beta','scan_scaled_SSE','scan_exitflag','scan_evaluations','elapsed_seconds'});
+ writetable(summary,fullfile(out,'model_d_dose_beta_summary.csv'));
+ fprintf('[%s] D dose beta %g nM COMPLETE: beta=%.10g, shared SSE=%.10g, dose SSE=%.10g\n',...
+  datestr(now,30),c.dose,beta,sharedSSE,sse);
+end
+writetable(array2table(allRuns,'VariableNames',{'dose_nM','start','beta',...
+ 'scaled_SSE','exitflag','function_evaluations'}),fullfile(out,'model_d_dose_beta_starts.csv'));
+writetable(array2table(predictions,'VariableNames',{'model_id','dose_nM','time_h','CF','CB','N','beta_CB'}),...
+ fullfile(out,'model_d_dose_beta_predictions.csv'));
+writetable(array2table(residuals,'VariableNames',{'model_id','dose_nM','time_h',...
+ 'observed_N','predicted_N','residual','scaled_residual'}),fullfile(out,'model_d_dose_beta_residuals.csv'));
+save(fullfile(out,'model_d_dose_beta.mat'),'summary','fixed','allRuns','predictions',...
+ 'residuals','cfg','g','cs','lower','upper','nStarts','kBF','sharedBeta','sourceRun','sourceCommit');
+f=figure('Visible','off','Color','w','Position',[80,80,1200,720]);
+colors=[0.1,0.6,0.3;0.75,0.2,0.15];styles={'--','-'};
+for j=1:numel(cs)
+ c=cs(j);
+ subplot(2,3,j);plot(c.t,c.y,'ko','DisplayName','Digitized data');hold on;
+ for modelId=1:2
+  Q=predictions(predictions(:,1)==modelId & predictions(:,2)==c.dose,:);
+  plot(Q(:,3),Q(:,6),styles{modelId},'Color',colors(modelId,:),'LineWidth',1.5);
+ end
+ title(sprintf('%g nM',c.dose));xlabel('Hours');ylabel('Cell count');grid on;
+ legend({'Digitized data','Shared beta D','Dose-specific beta diagnostic'},'Location','best');
+ subplot(2,3,j+3);hold on;
+ for modelId=1:2
+  Q=residuals(residuals(:,1)==modelId & residuals(:,2)==c.dose,:);
+  plot(Q(:,3),Q(:,7),['o',styles{modelId}],'Color',colors(modelId,:),'LineWidth',1.2);
+ end
+ plot([0,max(c.t)],[0,0],'k:');xlabel('Hours');ylabel('Scaled residual: prediction - data');grid on;
+end
+saveas(f,fullfile(out,'06_model_d_dose_beta.png'));close(f);
 end
