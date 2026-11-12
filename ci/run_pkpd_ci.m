@@ -1,7 +1,7 @@
 function results = run_pkpd_ci(mode)
 % RUN_PKPD_CI Run the unchanged quick/full fit and check its saved outputs.
 if nargin<1,mode='quick';end
-mode=validatestring(mode,{'quick','full','sensitivity','dose-beta'});
+mode=validatestring(mode,{'quick','full','sensitivity','dose-beta','saturation'});
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(root);
 out=fullfile(root,'joint_results');
@@ -12,17 +12,18 @@ end
 mkdir(out);
 timer=tic;
 doSensitivity=strcmp(mode,'sensitivity');
-doDoseBeta=strcmp(mode,'dose-beta');
+doSaturation=strcmp(mode,'saturation');
+doDoseBeta=strcmp(mode,'dose-beta') || doSaturation;
 nStarts=2;if ~strcmp(mode,'quick'),nStarts=8;end
 status=struct('status','running','mode',mode,'nStarts',nStarts,...
  'seed',42,'matlab_version',version,'platform',computer,...
  'commit',getenv('GITHUB_SHA'),'run_id',getenv('GITHUB_RUN_ID'),...
  'started_utc',char(datetime('now','TimeZone','UTC')),'elapsed_seconds',0);
-status.command=sprintf('run_joint_pkpd(%d,%d,%d)',nStarts,doSensitivity,doDoseBeta);
+status.command=sprintf('run_joint_pkpd(%d,%d,%d,%d)',nStarts,doSensitivity,doDoseBeta,doSaturation);
 status.rng_algorithm='twister';
 writeStatus(out,status);
 try
- results=run_joint_pkpd(nStarts,doSensitivity,doDoseBeta);
+ results=run_joint_pkpd(nStarts,doSensitivity,doDoseBeta,doSaturation);
  % These are runtime/output checks, not tests of predictive scientific validity.
  required={'01_cell_fits.png','02_residuals.png','03_PK_reference.png',...
   '04_equivalent_parameters.png','representative_parameters.csv',...
@@ -128,6 +129,48 @@ try
   status.dose_beta_starts=size(diagnostic.allRuns,1);
   status.dose_beta_shared_SSE=sum(doseSummary.shared_scaled_SSE);
   status.dose_beta_separate_SSE=sum(doseSummary.dose_scaled_SSE);
+ end
+ if doSaturation
+  sat=load(fullfile(out,'model_d_saturation.mat'));
+  assert(sat.kBF==diagnostic.kBF && sat.sharedBeta==diagnostic.sharedBeta && ...
+   isequal(sat.g,diagnostic.g) && isequal(sat.cfg,diagnostic.cfg) && isequal(sat.cs,diagnostic.cs),...
+   'PKPD:SaturationFixed','Reference PK, growth, kBF or data changed.');
+  assert(size(sat.runs,1)==nStarts+1 && height(sat.profile)>=100,...
+   'PKPD:SaturationCount','Incomplete multistart/profile.');
+  checkpointsSat=dir(fullfile(out,'saturation_checkpoints','*_start_*.mat'));
+  assert(numel(checkpointsSat)==nStarts+1,'PKPD:SaturationCheckpoints','Missing start checkpoints.');
+  assert(all(isfinite(sat.profile.scaled_SSE)) && all(sat.profile.scaled_SSE<1e9),...
+   'PKPD:SaturationProfile','Invalid profile values.');
+  assert(abs(min(sat.profile.scaled_SSE)-sat.parameters.scaled_SSE)<1e-5,...
+   'PKPD:SaturationOptimum','Joint fit and Ks profile disagree.');
+  assert(sat.parameters.scaled_SSE<=status.dose_beta_shared_SSE+1e-5,...
+   'PKPD:SaturationNested','Saturation fit is worse than linear limit.');
+  assert(abs(sat.summary.scaled_SSE(1)-status.dose_beta_shared_SSE)<1e-10 && ...
+   abs(sat.summary.scaled_SSE(2)-status.dose_beta_separate_SSE)<1e-10,...
+   'PKPD:SaturationComparators','Original comparators changed.');
+  vals=sat.predictions(:,4:end);
+  assert(all(isfinite(vals(:))) && all(sat.predictions(:,6)>0),...
+   'PKPD:SaturationCurves','Invalid saturation predictions.');
+  for m=1:3
+   mask=sat.residuals(:,1)==m;
+   assert(abs(sum(sat.residuals(mask,7).^2)-sat.summary.scaled_SSE(m))<1e-10,...
+    'PKPD:SaturationResiduals','SSE and residuals disagree.');
+  end
+  exact=sat.limits(isinf(sat.limits(:,1)),:);
+  large=sat.limits(sat.limits(:,1)==1e8,:);
+  assert(all(exact(:,4)<1e-10) && all(exact(:,5)<1e-10),...
+   'PKPD:SaturationExactLimit','Ks=Inf does not recover the original linear ODE solution.');
+  assert(all(large(:,4)<1e-4) && all(large(:,5)<1e-5),...
+   'PKPD:SaturationLargeLimit','Large finite Ks has not approached the linear solution.');
+  linearProfile=sat.profile.scaled_SSE(isinf(sat.profile.Ks_nM));
+  assert(abs(linearProfile-status.dose_beta_shared_SSE)<1e-5,...
+   'PKPD:SaturationLinearProfile','Re-optimized beta at Ks=Inf disagrees with linear D.');
+  status.saturation_starts=size(sat.runs,1);
+  status.saturation_profile_points=height(sat.profile);
+  status.saturation_beta=sat.parameters.beta;status.saturation_Ks=sat.parameters.Ks_nM;
+  status.saturation_SSE=sat.parameters.scaled_SSE;
+  status.saturation_large_Ks_max_N_relative_difference=max(large(:,4));
+  status.saturation_exact_limit_max_N_relative_difference=max(exact(:,4));
  end
  status.profile_points=height(profile);
  status.status='success';

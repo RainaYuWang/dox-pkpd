@@ -1,4 +1,4 @@
-function results = run_joint_pkpd(nStarts,doSensitivity,doDoseBeta)
+function results = run_joint_pkpd(nStarts,doSensitivity,doDoseBeta,doSaturation)
 % RUN_JOINT_PKPD  SUM-149PT reversible PK / direct cell-killing hypothesis.
 % Open this file and click Run, or type: results = run_joint_pkpd;
 % Base MATLAB only, no extra toolbox. Approximate digitized data are embedded.
@@ -22,6 +22,8 @@ function results = run_joint_pkpd(nStarts,doSensitivity,doDoseBeta)
 if nargin<1,nStarts=8;end
 if nargin<2,doSensitivity=false;end
 if nargin<3,doDoseBeta=false;end
+if nargin<4,doSaturation=false;end
+if doSaturation,doDoseBeta=true;end
 validateattributes(nStarts,{'numeric'},{'scalar','integer','>=',1});
 rng(42,'twister'); root=fileparts(mfilename('fullpath'));
 out=fullfile(root,'joint_results');if ~exist(out,'dir'),mkdir(out);end
@@ -210,6 +212,11 @@ if doSensitivity
 end
 if doDoseBeta
  results.model_d_dose_beta=doseBetaDiagnostic(cs,cfg,gD,lo(4),hi(4),nStarts,out);
+ results.elapsed_seconds=toc(runTimer);
+end
+if doSaturation
+ results.model_d_saturation=saturationDiagnostic(cs,cfg,gD,lo(4),hi(4),...
+  nStarts,out,results.model_d_dose_beta);
  results.elapsed_seconds=toc(runTimer);
 end
 save(fullfile(out,'joint_fit.mat'),'results','C','cs','runsA','runsB','runsC','runsD');
@@ -541,4 +548,161 @@ for j=1:numel(cs)
  plot([0,max(c.t)],[0,0],'k:');xlabel('Hours');ylabel('Scaled residual: prediction - data');grid on;
 end
 saveas(f,fullfile(out,'06_model_d_dose_beta.png'));close(f);
+end
+
+function summary=saturationDiagnostic(cs,cfg,g,betaLower,betaUpper,nStarts,out,doseBeta)
+% Shared saturating PD, with all archived D PK and growth values fixed.
+kBF=0.0049373889028291049;sharedBeta=0.00048479871747565857;
+lower=[betaLower,1e-3];upper=[betaUpper,1e8]; % beta: 1/(nM h), Ks: nM
+originalRng=rng;rngCleanup=onCleanup(@() rng(originalRng)); %#ok<NASGU>
+rng(271828,'twister');timer=tic;
+fitDir=fullfile(out,'saturation_checkpoints');mkdir(fitDir);
+fun=@(x) saturationLoss(x,cs,cfg,g,kBF);
+[x,sse,runs]=multifit(fun,[sharedBeta,50],lower,upper,nStarts,...
+ 'D shared saturating PD',fitDir);
+% A near-linear start checks nesting without treating large Ks as identified.
+[extra,extraSSE,extraRuns]=multifit(fun,[sharedBeta,1e7],lower,upper,1,...
+ 'D saturation near linear',fitDir);
+runs=[runs;extraRuns];
+if extraSSE<sse,x=extra;sse=extraSSE;end
+jointSeconds=toc(timer);
+nearLower=log(x./lower)<0.02;nearUpper=log(upper./x)<0.02;
+parameters=table(x(1),x(2),x(1)*x(2),sse,nearLower(1),nearUpper(1),...
+ nearLower(2),nearUpper(2),jointSeconds,'VariableNames',{'beta','Ks_nM',...
+ 'max_killing_rate_per_h','scaled_SSE','beta_near_lower','beta_near_upper',...
+ 'Ks_near_lower','Ks_near_upper','joint_fit_seconds'});
+writetable(parameters,fullfile(out,'model_d_saturation_parameters.csv'));
+writetable(array2table(runs,'VariableNames',{'beta','Ks_nM','scaled_SSE',...
+ 'exitflag','function_evaluations'}),fullfile(out,'model_d_saturation_starts.csv'));
+writetable(table({'beta';'Ks'},{'nM^-1 h^-1';'nM'},lower',upper',...
+ 'VariableNames',{'parameter','unit','lower','upper'}),fullfile(out,'model_d_saturation_bounds.csv'));
+save(fullfile(out,'model_d_saturation_fit.mat'),'x','sse','runs','parameters',...
+ 'cfg','g','cs','kBF','sharedBeta','lower','upper','jointSeconds');
+
+% Profile Ks over the entire exploratory range; re-optimize beta at each point.
+ksValues=unique([logspace(log10(lower(2)),log10(upper(2)),81)';...
+ logspace(log10(max(lower(2),x(2)/4)),log10(min(upper(2),x(2)*4)),41)';x(2);Inf]);
+profileDir=fullfile(out,'saturation_profile_checkpoints');mkdir(profileDir);
+profileRows=[];
+for j=1:numel(ksValues)
+ pointTimer=tic;Ks=ksValues(j);
+ objective=@(beta) saturationLoss([beta,Ks],cs,cfg,g,kBF);
+ [beta,value,flag,evals,candidates]=profileBeta(objective,betaLower,betaUpper,x(1));
+ boundLow=log(beta/betaLower)<0.02;boundHigh=log(betaUpper/beta)<0.02;
+ profileRows=[profileRows;[Ks,beta,value,flag,evals,boundLow,boundHigh,toc(pointTimer)]]; %#ok<AGROW>
+ save(fullfile(profileDir,sprintf('ks_%03d.mat',j)),...
+  'Ks','beta','value','flag','evals','candidates');
+ profile=array2table(profileRows,'VariableNames',{'Ks_nM','beta','scaled_SSE',...
+  'exitflag','function_evaluations','beta_near_lower','beta_near_upper','elapsed_seconds'});
+ writetable(profile,fullfile(out,'model_d_saturation_profile.csv'));
+ fprintf('[%s] D saturation profile %d/%d: Ks=%.7g, beta=%.7g, SSE=%.10g, %.1f s\n',...
+  datestr(now,30),j,numel(ksValues),Ks,beta,value,toc(pointTimer));
+end
+profile.delta_SSE=profile.scaled_SSE-min(profile.scaled_SSE);
+writetable(profile,fullfile(out,'model_d_saturation_profile.csv'));
+save(fullfile(out,'model_d_saturation_profile.mat'),'profile','x','sse','cfg','g','kBF');
+
+% Three comparators, always using the same data, scaling and fixed kBF.
+predictions=[];residuals=[];byDose=[];limits=[];
+for j=1:numel(cs)
+ c=cs(j);t=unique([linspace(0,12,241)';linspace(12,max(c.t),1001)';c.wash;c.t]);
+ pRef=[cfg.oldFE,cfg.oldFB,kBF,sharedBeta];
+ reference=simulate(pRef,t,c,cfg,g);referenceEffect=sharedBeta*reference(:,2);
+ for modelId=1:3
+  beta=sharedBeta;Ks=Inf;
+  if modelId==2,beta=doseBeta.dose_beta(j);end
+  if modelId==3,beta=x(1);Ks=x(2);end
+  p=[cfg.oldFE,cfg.oldFB,kBF,beta];
+  if modelId==3
+   Y=simulateSaturation(p,Ks,t,c,cfg,g);Yo=simulateSaturation(p,Ks,c.t,c,cfg,g);
+  else
+   Y=simulate(p,t,c,cfg,g);Yo=simulate(p,c.t,c,cfg,g);
+  end
+  effect=beta*Y(:,2)./(1+Y(:,2)/Ks);rr=Yo(:,3)-c.y;
+  predictions=[predictions;[repmat([modelId,c.dose],numel(t),1),t,Y,effect]]; %#ok<AGROW>
+  residuals=[residuals;[repmat([modelId,c.dose],numel(c.t),1),c.t,c.y,Yo(:,3),rr,rr/max(c.y)]]; %#ok<AGROW>
+  byDose=[byDose;[modelId,c.dose,beta,Ks,sum((rr/max(c.y)).^2),sqrt(mean(rr.^2))]]; %#ok<AGROW>
+ end
+ % Hold beta at the original shared value to isolate the large-Ks limit.
+ for Ks=[1e3,1e5,1e8,Inf]
+  Y=simulateSaturation(pRef,Ks,t,c,cfg,g);
+  effect=sharedBeta*Y(:,2)./(1+Y(:,2)/Ks);
+  Yo=simulateSaturation(pRef,Ks,c.t,c,cfg,g);
+  limits=[limits;[Ks,c.dose,sharedBeta,max(abs(Y(:,3)-reference(:,3)))/max(reference(:,3)),...
+   max(abs(effect-referenceEffect))/max(referenceEffect),sum(((Yo(:,3)-c.y)/max(c.y)).^2)]]; %#ok<AGROW>
+ end
+end
+modelId=(1:3)';modelNames={'Linear shared beta D';'Dose-specific beta diagnostic';'Shared saturating beta Ks'};
+totalSSE=arrayfun(@(m) sum(byDose(byDose(:,1)==m,5)),modelId);
+summary=table(modelId,modelNames,totalSSE,[1;3;2],...
+ 'VariableNames',{'model_id','model','scaled_SSE','conditional_free_PD_parameters'});
+writetable(summary,fullfile(out,'model_d_saturation_summary.csv'));
+writetable(array2table(byDose,'VariableNames',{'model_id','dose_nM','beta','Ks_nM','scaled_SSE','RMSE_cells'}),...
+ fullfile(out,'model_d_saturation_by_dose.csv'));
+writetable(array2table(predictions,'VariableNames',{'model_id','dose_nM','time_h','CF','CB','N','killing_rate'}),...
+ fullfile(out,'model_d_saturation_predictions.csv'));
+writetable(array2table(residuals,'VariableNames',{'model_id','dose_nM','time_h','observed_N',...
+ 'predicted_N','residual','scaled_residual'}),fullfile(out,'model_d_saturation_residuals.csv'));
+writetable(array2table(limits,'VariableNames',{'Ks_nM','dose_nM','fixed_beta',...
+ 'max_N_relative_difference','max_killing_relative_difference','scaled_SSE'}),...
+ fullfile(out,'model_d_saturation_linear_limit.csv'));
+save(fullfile(out,'model_d_saturation.mat'),'summary','parameters','profile','runs',...
+ 'byDose','predictions','residuals','limits','cfg','g','cs','kBF','sharedBeta','lower','upper');
+f=figure('Visible','off','Color','w','Position',[80,80,1200,720]);
+colors=[0.1,0.6,0.3;0.75,0.2,0.15;0.1,0.3,0.85];styles={'--',':','-'};
+for j=1:numel(cs)
+ c=cs(j);subplot(2,3,j);plot(c.t,c.y,'ko');hold on;
+ for m=1:3
+  Q=predictions(predictions(:,1)==m & predictions(:,2)==c.dose,:);
+  plot(Q(:,3),Q(:,6),styles{m},'Color',colors(m,:),'LineWidth',1.5);
+ end
+ title(sprintf('%g nM',c.dose));xlabel('Hours');ylabel('Cell count');grid on;
+ legend([{'Digitized data'};modelNames],'Location','best');
+ subplot(2,3,j+3);hold on;
+ for m=1:3
+  Q=residuals(residuals(:,1)==m & residuals(:,2)==c.dose,:);
+  plot(Q(:,3),Q(:,7),['o',styles{m}],'Color',colors(m,:));
+ end
+ plot([0,max(c.t)],[0,0],'k:');xlabel('Hours');ylabel('Scaled residual: prediction - data');grid on;
+end
+saveas(f,fullfile(out,'07_model_d_saturation.png'));close(f);
+f=figure('Visible','off','Color','w','Position',[80,80,1100,400]);finite=isfinite(profile.Ks_nM);
+subplot(1,2,1);semilogx(profile.Ks_nM(finite),profile.scaled_SSE(finite),'o-');hold on;
+yline(profile.scaled_SSE(~finite),'k--','Linear limit');plot(x(2),sse,'rp','MarkerSize',12);
+xlabel('Fixed Ks (nM)');ylabel('Profile scaled SSE');grid on;title('Beta re-optimized at each Ks');
+subplot(1,2,2);loglog(profile.Ks_nM(finite),profile.beta(finite),'o-');
+xlabel('Fixed Ks (nM)');ylabel('Optimized beta (nM^{-1} h^{-1})');grid on;title('Conditional profile; not a confidence interval');
+saveas(f,fullfile(out,'08_model_d_saturation_profile.png'));close(f);
+fprintf('[%s] D saturation COMPLETE: beta=%.10g, Ks=%.10g, SSE=%.10g, %.1f s\n',...
+ datestr(now,30),x(1),x(2),sse,toc(timer));
+end
+
+function v=saturationLoss(x,cs,cfg,g,kBF)
+v=0;p=[cfg.oldFE,cfg.oldFB,kBF,x(1)];
+for j=1:numel(cs)
+ Y=simulateSaturation(p,x(2),cs(j).t,cs(j),cfg,g);
+ v=v+sum(((Y(:,3)-cs(j).y)/max(cs(j).y)).^2);
+end
+end
+
+function Y=simulateSaturation(p,Ks,t,c,cfg,g)
+% Same three states, integrator, tolerances, initial conditions and washout.
+t=t(:);assert(all(t>=0) && Ks>0);Y=zeros(numel(t),3);
+y0=[0;0;log(c.y(1))];stop=max(t);
+if stop==0,Y(:,3)=c.y(1);return;end
+opts=odeset('RelTol',cfg.rtol,'AbsTol',cfg.atol);
+end1=min(c.wash,stop);
+s1=ode15s(@(~,y) rhsSaturation(y,c.dose,p,Ks,cfg,g),[0,end1],y0,opts);
+m=t<=end1;v=deval(s1,t(m));Y(m,:)=v';
+if any(~m)
+ s2=ode15s(@(~,y) rhsSaturation(y,0,p,Ks,cfg,g),[end1,stop],deval(s1,end1),opts);
+ v=deval(s2,t(~m));Y(~m,:)=v';
+end
+Y(:,3)=exp(Y(:,3));
+if any(~isfinite(Y(:))),error('Nonfinite saturation simulation');end
+end
+
+function dy=rhsSaturation(y,ce,p,Ks,cfg,g)
+dy=rhs(y,ce,p,cfg,g); % The two PK derivatives are exactly the original ones.
+dy(3)=g(1)*(1-exp(y(3))/g(2))-p(4)*y(2)/(1+y(2)/Ks);
 end

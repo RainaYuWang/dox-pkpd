@@ -126,3 +126,5 @@ cell number 来自论文图像数字化；旧 CF+CB 是模拟参考，不是独�
 共享 beta 假设的诊断使用 `dose-beta` 模式，或将相关代码推送至 `pkpd-dose-beta`。调用 `run_joint_pkpd(8,false,true)`，保持归档 D 的参考 PK、生长参数和最佳 kBF，追加三个剂量各自的 beta 拟合及一维扫描复核。输出、失败保存及 Git 自动取回沿用相同流程。详见 [分剂量 beta 诊断定义](../reports/model_d_dose_beta_definition.md)。
 
 已完成的实际诊断、各剂量 beta/SSE、残差形状、625 nM 早期下降及数值审计见 [诊断结果](../reports/model_d_dose_beta_results.md)。图表可由 `ci/analyze_model_d_dose_beta.py --results <joint_results路径> --output reports` 重建。
+
+共享饱和杀伤项的第一轮比较使用 `saturation` 模式或 `pkpd-saturation` 分支，调用 `run_joint_pkpd(8,false,true,true)`。固定参考 PK、生长参数及 D 的最佳 kBF，仅联合拟合共享 beta、Ks，并计算 Ks 条件 profile 和线性极限。详见 [饱和 PD 定义与边界依据](../reports/model_d_saturation_definition.md)。
