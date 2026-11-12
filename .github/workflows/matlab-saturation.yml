@@ -1,0 +1,101 @@
+name: MATLAB Saturation Link
+run-name: Saturation ${{ github.ref_name }}
+
+on:
+  push:
+    branches: [pkpd-sat-quick, pkpd-sat-full]
+    paths:
+      - '**/*.m'
+      - 'ci/*.py'
+      - 'reports/paper_time_definitions.json'
+      - '.github/workflows/matlab-pkpd.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: quick validates the pipeline; full runs the default 8-start fit
+        required: true
+        default: sat-quick
+        type: choice
+        options: [sat-quick, sat-full]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pkpd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fit:
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    timeout-minutes: 300
+    env:
+      PKPD_MODE: ${{ inputs.mode || (github.ref_name == 'pkpd-sat-full' && 'sat-full' || 'sat-quick') }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+
+      - name: Record run context
+        env:
+          MODE: ${{ env.PKPD_MODE }}
+        run: |
+          mkdir -p ci-logs
+          {
+            date -u --iso-8601=seconds
+            echo "commit=$GITHUB_SHA"
+            echo "run=$GITHUB_RUN_ID attempt=$GITHUB_RUN_ATTEMPT"
+            echo "mode=$MODE MATLAB=R2024b runner=ubuntu-22.04"
+            echo "command=run_saturation_link('$MODE')"
+            uname -a
+          } | tee ci-logs/context.txt
+
+      - name: Publish running status through Git
+        continue-on-error: true
+        run: python3 ci/publish_results.py --phase running
+
+      - name: Verify paper definitions and fetch archived comparisons
+        timeout-minutes: 10
+        shell: bash
+        run: python3 ci/prepare_time_form_baseline.py 2>&1 | tee ci-logs/time-form-preflight.log
+
+      - name: Set up base MATLAB R2024b
+        id: setup
+        uses: matlab-actions/setup-matlab@v2
+        timeout-minutes: 30
+        with:
+          release: R2024b
+
+      # Official public-project licensing: no Compiler/Coder or license secrets.
+      - name: Run MATLAB fit and verify outputs
+        id: fit
+        uses: matlab-actions/run-command@v2
+        timeout-minutes: ${{ (env.PKPD_MODE == 'quick' || env.PKPD_MODE == 'delay-quick' || env.PKPD_MODE == 'time-quick') && 60 || 240 }}
+        with:
+          command: run_saturation_link('${{ env.PKPD_MODE }}')
+          startup-options: -logfile ci-logs/matlab.log
+
+      - name: Upload results and available logs (also on failure)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        timeout-minutes: 10
+        with:
+          name: pkpd-${{ env.PKPD_MODE }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            joint_results/
+            ci-logs/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish results through Git (also on failure)
+        if: ${{ always() }}
+        timeout-minutes: 5
+        env:
+          SETUP_OUTCOME: ${{ steps.setup.outcome }}
+          FIT_OUTCOME: ${{ steps.fit.outcome }}
+        run: >-
+          python3 ci/publish_results.py --phase finished
+          --setup-outcome "$SETUP_OUTCOME" --fit-outcome "$FIT_OUTCOME"
