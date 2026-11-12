@@ -480,14 +480,21 @@ for j=1:numel(cs)
  % Independent one-dimensional scan/refinement checks the multistart optimum.
  % It uses the existing profileBeta helper, unchanged bounds and ODE accuracy.
  [checkBeta,checkSSE,checkFlag,checkEvals,candidates]=profileBeta(fun,lower,upper,sharedBeta);
+ % Audit the shallow local region without changing solver/optimizer accuracy.
+ auditBetas=unique([linspace(max(lower,min(beta,checkBeta)*0.998),...
+  min(upper,max(beta,checkBeta)*1.002),101),beta,checkBeta]);
+ auditSSE=arrayfun(fun,auditBetas);
+ localAudit=table(auditBetas',auditSSE','VariableNames',{'beta','scaled_SSE'});
+ writetable(localAudit,fullfile(checkpointDir,'local_objective.csv'));
+ [auditMin,auditIndex]=min(auditSSE);auditBeta=auditBetas(auditIndex);
  sharedSSE=fun(sharedBeta);
  nearLower=log(beta/lower)<0.02;nearUpper=log(upper/beta)<0.02;
  rows=[rows;[c.dose,sharedBeta,beta,sharedSSE,sse,nearLower,nearUpper,...
-  checkBeta,checkSSE,checkFlag,checkEvals,toc(timer)]]; %#ok<AGROW>
+  checkBeta,checkSSE,checkFlag,checkEvals,auditBeta,auditMin,toc(timer)]]; %#ok<AGROW>
  allRuns=[allRuns;[repmat(c.dose,nStarts,1),(1:nStarts)',runs]]; %#ok<AGROW>
  save(fullfile(checkpointDir,'dose_fit.mat'),'beta','sse','runs','kBF','sharedBeta',...
   'sharedSSE','c','cfg','g','lower','upper','checkBeta','checkSSE','checkFlag',...
-  'checkEvals','candidates','sourceRun','sourceCommit');
+  'checkEvals','candidates','localAudit','sourceRun','sourceCommit');
  t=unique([linspace(0,12,241)';linspace(12,max(c.t),1001)';c.wash;c.t]);
  for modelId=1:2
   currentBeta=sharedBeta;if modelId==2,currentBeta=beta;end
@@ -501,7 +508,8 @@ for j=1:numel(cs)
  end
  summary=array2table(rows,'VariableNames',{'dose_nM','shared_beta','dose_beta',...
   'shared_scaled_SSE','dose_scaled_SSE','beta_near_lower','beta_near_upper',...
-  'scan_beta','scan_scaled_SSE','scan_exitflag','scan_evaluations','elapsed_seconds'});
+  'scan_beta','scan_scaled_SSE','scan_exitflag','scan_evaluations',...
+  'local_audit_beta','local_audit_scaled_SSE','elapsed_seconds'});
  writetable(summary,fullfile(out,'model_d_dose_beta_summary.csv'));
  fprintf('[%s] D dose beta %g nM COMPLETE: beta=%.10g, shared SSE=%.10g, dose SSE=%.10g\n',...
   datestr(now,30),c.dose,beta,sharedSSE,sse);

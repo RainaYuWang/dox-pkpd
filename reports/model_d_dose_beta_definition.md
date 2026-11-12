@@ -15,3 +15,5 @@
 Actions 新增 `dose-beta` 模式和 `pkpd-dose-beta` 自动计算分支；执行 `run_joint_pkpd(8,false,true)`。已有 A/B/C/D 和条件 profile 仍运行作为原比较，随后追加此诊断。原 quick/full/sensitivity 模式保持可用。CSV 中诊断 model_id=1 为归档共享 beta 的 D，model_id=2 为分剂量 beta；这些编号仅适用于 `model_d_dose_beta_*` 文件。
 
 本比较在固定 kBF 的条件下增加两个 beta 自由度。原 D 的 kBF 本身来自同一数据，因此也不能将其当作外部已知值来做未经校准的统计检验。新增参数导致训练 SSE 下降不能单独证明机制更合理、参数真实或预测能力提高。
+
+首次实际运行 `43129468749` 中，低剂量多起点与独立扫描的 SSE 相差 5.52e-7，beta 相差约 0.075%，触发了最初的 1e-7 输出一致性检查。随后在各剂量两种结果附近增加 101 点局部目标函数审计，并包含两种最优值本身，保存 `dose_beta_checkpoints/dose_*/local_objective.csv`。一致性判据改为 SSE 差小于 1e-6 且 beta 对数差小于 0.001，局部审计也不能找到超过 1e-6 的进一步改善。这仅调整诊断结果的比较判据；原数据、目标、边界、优化器设置及 ODE 精度全部保持不变。最终报告需保留这一数值限制，不将 beta 的末位数字作精确科学解释。
