@@ -1,0 +1,16 @@
+{
+  "source_sha": "f05543e978e425785fdf918751185cd1a733d300",
+  "run_id": "43137362254",
+  "attempt": "1",
+  "mode": "delay-quick",
+  "source_ref": "refs/heads/pkpd-delay-quick",
+  "run_url": "https://github.com/RainaYuWang/dox-pkpd/actions/runs/43137362254",
+  "phase": "running",
+  "setup_outcome": "pending",
+  "fit_outcome": "pending",
+  "updated_unix": 1794448295.950356,
+  "archive_sha256": "7f33d4da9e8763aeae9d1fb68ede23571c8571cb2310311e18ebf70e77b461e4",
+  "files": [
+    "ci-logs/context.txt"
+  ]
+}
