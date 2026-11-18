@@ -34,7 +34,7 @@ McKenna 等，*Scientific Reports* 7, 5725 (2017)，[DOI](https://doi.org/10.103
 
 现有检出目录可直接使用。MATLAB R2024b 基础版从仓库根目录运行 `matlab -batch "addpath('fig3'); run_fig3_pkpd('fig3-quick')"`。quick 采用至少 3 个起点和较粗的 kBF 网格，full 至少 10 个起点和较细网格。结果默认写入全新的 `fig3_results/`；可传第二个 MATLAB 参数指定另一个新目录。旧结果由原入口维护。
 
-GitHub 的 Fig. 3 专用 workflow 经 `pkpd-fig3-quick` 和 `pkpd-fig3-full` 分支启动。先完成 quick 检查，再用相同的代码提交启动 full。取回精确提交和指定模式的示例：
+GitHub 的 Fig. 3 专用 workflow 经 `pkpd-fig3-quick` 和 `pkpd-fig3-full` 分支启动。先完成 quick 检查，再用相同的拟合代码和数据启动 full。若同一提交已通过 quick 分支推送，首次仅创建 full 分支可能因 GitHub 的路径过滤而没有运行记录。在 full 分支推送包含 Fig. 3 说明更新的提交可触发运行，再按该提交取回结果。取回精确提交和指定模式的示例：
 
 ```sh
 python3 ci/collect_results.py --sha HEAD --mode fig3-quick --wait 5400
