@@ -1,10 +1,12 @@
 function mesh = fig3_mesh(times, wash, step)
 % Include requested times and the washout in the piecewise quadrature mesh.
-cuts = unique([times(:); wash*(wash>times(1) && wash<times(end))]);
+cuts = unique([times(:);wash;2]);
 cuts = cuts(cuts>=times(1) & cuts<=times(end));
 edges = cuts(1);
 for j = 2:numel(cuts)
-    count = ceil((cuts(j)-cuts(j-1))/step);
+    localStep = step;
+    if cuts(j)<=2, localStep=step/8; end
+    count = ceil((cuts(j)-cuts(j-1))/localStep);
     a = linspace(cuts(j-1),cuts(j),count+1)';
     edges = [edges; a(2:end)]; %#ok<AGROW>
 end

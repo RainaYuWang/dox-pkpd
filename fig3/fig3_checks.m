@@ -65,7 +65,7 @@ checks=table(string(names(:)),errors(:),tolerances(:),'VariableNames',{'check','
         dy=[input*ce-(kFE+kFB)*y(1)+k*y(2);kFB*y(1)-k*y(2)];
     end
     function dy = coupled(y,ce,k,kind,p)
-        dy=[pkRhs(y,ce,k);kp*(1-exp(y(3))/theta)-fig3_kill(y(2),kind,p)];
+        dy=[pkRhs(y,ce,k);kp*(1-exp(y(3))/theta)-fig3_kill(max(y(2),0),kind,p)];
     end
     function add(name,errorValue,tolerance)
         names{end+1}=name; errors(end+1)=errorValue; tolerances(end+1)=tolerance;
