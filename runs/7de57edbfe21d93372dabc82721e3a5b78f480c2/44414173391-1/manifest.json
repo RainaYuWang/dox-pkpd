@@ -5,10 +5,24 @@
   "mode": "fig3-quick",
   "source_ref": "refs/heads/pkpd-fig3-quick",
   "run_url": "https://github.com/RainaYuWang/dox-pkpd/actions/runs/44414173391",
-  "phase": "running",
-  "setup_outcome": "pending",
-  "fit_outcome": "pending",
-  "updated_unix": 1795041776.8607755,
-  "archive_sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85",
-  "files": []
+  "phase": "finished",
+  "setup_outcome": "success",
+  "fit_outcome": "failure",
+  "updated_unix": 1795041867.5407808,
+  "matlab": {
+    "status": "failed",
+    "mode": "fig3-quick",
+    "matlab_version": "24.2.0.3361896 (R2024b) Update 10",
+    "commit": "7de57edbfe21d93372dabc82721e3a5b78f480c2",
+    "run_id": "44414173391",
+    "mesh_step_h": 0.5,
+    "error": "Operands to the logical AND (&&) and OR (||) operators must be convertible to\nlogical scalar values. Use the ANY or ALL functions to reduce operands to\nlogical scalar values.\n\nError in fig3_mesh (line 3)\ncuts = unique([times(:); wash*(wash>times(1) && wash<times(end))]);\n                               ^^^^\nError in run_fig3_pkpd (line 25)\n            't',D.time_h,'y',D.cells,'mesh',fig3_mesh(D.time_h,D.wash_h,step), ...\n                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nError in command_4515a949_4ec9_433a_89c3_0033fee8d6b1 (line 1)\ncd(getenv('MW_ORIG_WORKING_FOLDER')); addpath('/home/runner/work/_actions/matlab-actions/run-command/v2/dist/plugins'); addpath('fig3'); run_fig3_pkpd('fig3-quick')\n                                                                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    "elapsed_seconds": 1.527982
+  },
+  "archive_sha256": "297466e7496e483fa8707e95a7477923426b1ea4b61241c8e276f0e683a1dbf5",
+  "files": [
+    "fig3_results/ci_status.json",
+    "fig3_results/run.log",
+    "ci-logs/matlab.log"
+  ]
 }
