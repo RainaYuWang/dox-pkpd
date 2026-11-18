@@ -19,6 +19,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--phase', choices=['running', 'finished'], required=True)
     parser.add_argument('--setup-outcome', default='pending')
+    parser.add_argument('--results-dir', choices=['joint_results', 'fig3_results'],
+                        default='joint_results')
     parser.add_argument('--fit-outcome', default='pending')
     args = parser.parse_args()
     sha = os.environ['GITHUB_SHA']
@@ -33,12 +35,12 @@ def main():
                     phase=args.phase, setup_outcome=args.setup_outcome,
                     fit_outcome=args.fit_outcome, updated_unix=time.time())
     files = []
-    for directory in ['joint_results', 'ci-logs']:
+    for directory in [args.results_dir, 'ci-logs']:
         for path in sorted(Path(directory).rglob('*')):
             if path.is_file() and not path.is_symlink() and path.suffix in {
                     '.png', '.csv', '.mat', '.log', '.json', '.txt'}:
                 files.append(path)
-    status_path = Path('joint_results/ci_status.json')
+    status_path = Path(args.results_dir) / 'ci_status.json'
     if status_path.exists():
         manifest['matlab'] = json.loads(status_path.read_text())
     with tempfile.TemporaryDirectory(prefix='pkpd-publish-') as temp:
