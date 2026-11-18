@@ -1,0 +1,14 @@
+{
+  "source_sha": "6407cc4cc2a32defbde6bbdc0c13f57327bc1fc5",
+  "run_id": "44415079262",
+  "attempt": "1",
+  "mode": "fig3-quick",
+  "source_ref": "refs/heads/pkpd-fig3-quick",
+  "run_url": "https://github.com/RainaYuWang/dox-pkpd/actions/runs/44415079262",
+  "phase": "running",
+  "setup_outcome": "pending",
+  "fit_outcome": "pending",
+  "updated_unix": 1795042126.3353493,
+  "archive_sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85",
+  "files": []
+}
