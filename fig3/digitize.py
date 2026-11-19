@@ -20,6 +20,8 @@ def main():
         subprocess.run(['pdfimages', '-f', '5', '-l', '5', '-png', PDF, prefix], check=True)
         source = Image.open(f'{prefix}-000.png').convert('RGB')
         assert source.size == (1650, 1101)
+    with (HERE / "manual_points.csv").open(newline="") as file:
+        manual = list(csv.DictReader(file))
     draw = ImageDraw.Draw(source)
     with (HERE / 'observations.csv').open('w', newline='') as file:
         writer = csv.writer(file, lineterminator='\n')
@@ -30,13 +32,24 @@ def main():
             x0, x600 = X_TICKS[col]
             y0, y40k = Y_TICKS[row]
             panel, *picks = line.split()
+            rows = []
             for pick in picks:
                 x, y = map(int, pick.rstrip('*').split(','))
                 kind = 'ci_midpoint' if pick.endswith('*') else 'center'
-                writer.writerow([panel, DOSES[row], DURATIONS[col], f'{600*(x-x0)/(x600-x0):.6f}',
+                rows.append([panel, DOSES[row], DURATIONS[col], f'{600*(x-x0)/(x600-x0):.6f}',
                                  f'{40000*(y0-y)/(y0-y40k):.6f}', x, y, kind])
                 color = '#1e68ff' if kind == 'ci_midpoint' else '#00996d'
                 draw.ellipse((x-4, y-4, x+4, y+4), outline=color, width=1)
+            for point in manual:
+                if point['panel'] != panel:
+                    continue
+                t, cells = int(point['time_h']), int(point['cells'])
+                rows.append([panel, DOSES[row], DURATIONS[col], t, cells, '', '', 'user_marked'])
+                # The screenshots have their own pixel coordinates. Project only for the overlay.
+                x = x0 + t * (x600-x0) / 600
+                y = y0 - cells * (y0-y40k) / 40000
+                draw.ellipse((x-3, y-3, x+3, y+3), outline='#9a168a', width=1)
+            writer.writerows(sorted(rows, key=lambda r: float(r[3])))
     source.save(HERE / 'point_audit.png')
 
 
