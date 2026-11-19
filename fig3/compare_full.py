@@ -14,8 +14,8 @@ from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
 ROOT = Path(__file__).resolve().parents[1]
-FULL = ROOT / 'reports/fig3/full'
-OUT = ROOT / 'reports/fig3/comparison'
+FULL = ROOT / 'reports/fig3_184/full'
+OUT = ROOT / 'reports/fig3_184/comparison'
 LETTERS = 'abcdefghi'
 MODEL_NAMES = ['平台·线性', '平台·n=1', '平台·自由 n', '零解离·线性', '零解离·n=1',
                '零解离·自由 n', '自由解离·线性', '自由解离·n=1', '自由解离·自由 n']
@@ -132,10 +132,8 @@ def figure_grid(title, subtitle, ids, labels, metric, data, observations):
         obs = observations[j]
         x = column(obs, 'time_h')
         wash = int(obs[0]['wash_h'])
-        limit = 33 if j == 9 else x[-1]*1.012
-        if j in (7, 8):
-            left, right = x[1], x[2]
-        elif j == 9:
+        limit = 720 if j == 9 else x[-1]*1.012
+        if j == 9:
             left, right = x[-1], limit
         else:
             left = right = None
@@ -184,8 +182,41 @@ def figure_grid(title, subtitle, ids, labels, metric, data, observations):
                'CB_nM':'结合药物 CB（nM）','kill_h_inv':'有效杀伤率（每小时）'}
     fig.supylabel(ylabels[metric], x=.012, fontsize=12)
     fig.supxlabel('给药后时间（h）', y=.056, fontsize=12)
-    fig.text(.06,.022,'g、h 阴影为两次可辨观测之间的长缺口。i 仅覆盖 0–22.68 h，θᵢ 和后续轨迹约束不足；右侧仅截示外推区。',fontsize=10,color=DARK)
+    fig.text(.06,.022,'g、h、i 含手动标记的近似读数。i 的观测止于 509 h，灰色为外推区，曲线只画到最后一个输入点。',fontsize=10,color=DARK)
     return fig
+
+
+def comparison_notes(summary, params, residuals):
+    scores = column(summary, 'SSE')
+    def improvement(old, new):
+        return 100 * (1 - scores[new-1]/scores[old-1])
+
+    changes = {key: float(summary[2]['SSE_'+key]) - float(summary[8]['SSE_'+key])
+               for key in LETTERS}
+    ordered = sorted(changes, key=changes.get, reverse=True)[:3]
+    share = 100 * sum(changes[key] for key in ordered) / (scores[2]-scores[8])
+    largest = sorted(LETTERS, key=lambda key: float(summary[8]['SSE_'+key]), reverse=True)[:3]
+    g = residuals[9, 7][1]
+    turns = next(r for r in read(FULL/'regrowth.csv') if r['model_id']=='9' and r['panel_id']=='7')
+    fit = params['dynamic_hill']
+    k = fit['kBF']
+    t = float(g['time_h'])
+    n0 = float(residuals[9, 7][0]['observed_N'])
+    net = fit['kp'] - fit['Kmax']
+    integral = t if net == 0 else np.expm1(net*t)/net
+    lower_g = np.exp(net*t)/(1/n0 + fit['kp']*integral/fit['theta_g'])
+    profile = read(FULL/'dynamic_hill_kbf_profile.csv')
+    before = max((r for r in profile if float(r['kBF_fixed']) < k*.9999), key=lambda r: float(r['kBF_fixed']))
+    after = min((r for r in profile if float(r['kBF_fixed']) > k*1.0001), key=lambda r: float(r['kBF_fixed']))
+    fall = [-float(r['last_obs_change_from_peak_pct']) for r in read(FULL/'platform.csv')
+            if np.isclose(float(r['kBF']),k,rtol=1e-8,atol=0)]
+    return [
+        ('分组 θ 和固定平台',f'各组 θ 可调节增长水平和晚期细胞数。固定平台自由 Hill 的 g、h SSE 分别为 {float(summary[2]["SSE_g"]):.3f}、{float(summary[2]["SSE_h"]):.3f}。\n组内杀伤率与 θ 均恒定时，细胞数只能单调变化或保持水平，无法表达 g、h 的先降后升。'),
+        ('饱和与解离',f'固定平台下，线性改为 n=1 降低 SSE {improvement(1,2):.1f}%，再放开 n 降低 {improvement(2,3):.2f}%。自由解离下分别降低 {improvement(7,8):.1f}%、{improvement(8,9):.1f}%。\n自由 Hill 的参数数依次为 13、13、14。单独保留早期过渡且固定 kBF=0 时，SSE 为 {scores[5]:.4f}。'),
+        ('误差集中在哪些面板',f'固定平台自由 Hill 到动态自由 Hill 的总 SSE 净降幅中，{"、".join(ordered)} 合计贡献 {share:.1f}%。\n动态自由 Hill 的剩余误差以 {"、".join(largest)} 面板最大。逐面板数值见第 2 页。'),
+        ('g 的早期高估',f'给药后 {float(g["time_h"]):.1f} h 的观测约 {float(g["observed_N"]):,.0f} 个细胞，动态自由 Hill 预测 {float(g["predicted_N"]):,.0f} 个。\n即使从 0 h 就达到最大杀伤率 Kmax，该时刻也至少有 {lower_g:,.0f} 个。拟合曲线到 {float(turns["predicted_min_t_h"]):.0f} h 才降至最低约 {float(turns["predicted_min_N"]):,.0f} 个。'),
+        ('实际窗口与条件 profile',f'最佳 kBF 为 {k:.5g} h⁻¹。九组末次观测时模拟 CB 较各自峰值下降 {min(fall):.0f}%–{max(fall):.0f}%。\n取相邻的 kBF 网格点 {float(before["kBF_fixed"]):.4g} 和 {float(after["kBF_fixed"]):.4g} 并重优化其余参数后，SSE 分别为 {float(before["SSE"]):.4f} 和 {float(after["SSE"]):.4f}，后者 n={float(after["n"]):.2f}。'),
+        ('数据能支持的结论','i 的 22 个点约束到 509 h 的变化，后续再增长、消失或长期平台仍缺少数据。手动读数尤其在近零区有误差。\n细胞计数支持这组模型中随时间变化的有效杀伤。真实 CB 浓度和解离速率仍需独立药物测量来验证。')]
 
 
 def main():
@@ -199,21 +230,24 @@ def main():
     summary, params, bounds, curves, residuals, obs = load()
     main_rows, theta, errors = tables(summary, params, bounds)
     with PdfPages(OUT/'fig3_full_comparison.pdf') as pdf:
-        fig = sheet('Fig. 3 九条件联合拟合', 'SUM-149PT  ·  138 个可辨观测  ·  9 个模型  ·  归档结果 dfcfeaf')
-        fig.text(.06,.84,'自由 Hill 的训练 SSE 从固定平台的 1.9494 降至自由解离的 0.4655。',fontsize=17,color=DARK)
+        fig = sheet('Fig. 3 九条件联合拟合', 'SUM-149PT  ·  184 个观测  ·  9 个模型  ·  MATLAB full 输入 a04281f')
+        fig.text(.06,.84,f"自由 Hill 的总 SSE 在固定平台下为 {float(summary[2]['SSE']):.4f}，允许解离后为 {float(summary[8]['SSE']):.4f}。",fontsize=17,color=DARK)
         table(fig,[.06,.40,.88,.39],['模型','参数数','总 SSE','kp','β','Kmax','Khalf','n','kBF','触界'], main_rows,
               [.14,.07,.10,.10,.11,.10,.09,.08,.10,.11])
         fig.text(.06,.31,'kp、Kmax、kBF 单位为 h⁻¹，β 为 nM⁻¹ h⁻¹，Khalf 为 nM。fixed 表示固定，— 表示不适用。')
         fig.text(.06,.26,'平台值由固定参考 PK 和暴露时长解析给出。固定 kEF=3.5×10⁻⁶、kFE=1.25、kFB=0.21 h⁻¹，VE=250、VI=0.004629 µL。')
         fig.text(.06,.21,'仅列最优解的触界情况。近界定义沿用归档的对数距离 ≤0.01。表内所列 θ 上界均为 10⁸ cells。')
         fig.text(.06,.15,'各组以首观测初始化 N，并以本组最大观测细胞数缩放残差。后续表和图均使用同一批数据。')
+        fig.text(.06,.10,'固定平台直接代入常数 CB，所以该模型没有 kBF 参数。零解离模型则从给药起计算 CB(t)，取 kBF=0。')
+        starts = column(read(FULL/'dynamic_hill_starts.csv'), 'SSE')
+        fig.text(.06,.05,f'动态自由 Hill 的 {len(starts)} 个联合起点中，{sum(starts < min(starts)+1e-5)} 次达到最低 SSE（容差 10⁻⁵），其余起点最高 SSE 为 {max(starts):.4f}。')
         pdf.savefig(fig); plt.close(fig)
         fig = sheet('逐条件参数和误差', '面板 a–i 按 Fig. 3 行优先排列。各行共用上一页的共享参数。')
         fig.text(.06,.85,'各组 θ（cells，按整数展示）',fontsize=15,color=DARK)
         table(fig,[.06,.51,.90,.31],['模型',*LETTERS],theta,[.13]+[.097]*9)
         fig.text(.06,.45,'逐面板归一化 SSE',fontsize=15,color=DARK)
         table(fig,[.06,.10,.90,.32],['模型',*LETTERS],errors,[.13]+[.097]*9)
-        fig.text(.06,.04,'i 只有一个非初值残差。多个模型在 i 的 SSE 接近零，其 θ 估计却横跨多个数量级。')
+        fig.text(.06,.04,'i 有 22 个点（含固定初值），其中 20 个是手动近似读数。509 h 以后没有用于拟合的观测。')
         pdf.savefig(fig); plt.close(fig)
         sets = [
             ('fit_cb','三种 CB 输入下的拟合曲线','三条曲线均使用自由 Hill；共享参数及分组 θ 已各自联合估计。',
@@ -235,13 +269,7 @@ def main():
             pdf.savefig(fig); plt.close(fig)
 
         fig=sheet('比较结果与证据边界','最低训练误差来自动态自由 Hill。结论限于九组可辨点和已比较的模型。')
-        notes = [
-            ('分组 θ 和固定平台','九个 θ 可以调整各组增长水平及晚期细胞数。固定平台自由 Hill 的 g、h SSE 分别为 0.4820、0.5808。\n恒定杀伤与组内恒定 θ 使方程成为一维自治系统，无法跟随先下降再回升的观测。'),
-            ('饱和与解离','固定平台下，线性改为 n=1 降低 SSE 64.0%，再放开 n 仅降低 0.28%。自由解离下两步各降低 71.1%、41.5%，\n每步各增加一个参数。对自由 Hill，保留早期 PK 过渡且固定 kBF=0 得到 SSE 2.1095。允许解离后为 0.4655。'),
-            ('误差来自哪些面板','固定平台自由 Hill 到动态自由 Hill 的净降幅中，h、g、f 合计贡献 84.3%。最佳模型仍以 h 和 f 的残差平方和最高。\n在自由解离下，n=1 到自由 n 的改善主要来自 c、h、e，而 g 的 SSE 仅下降 0.0030。'),
-            ('g 面板的早期下降','22.6 h 观测 2,656 cells，最佳模型预测 4,564。即使杀伤始终达到 Kmax，θg(1−Kmax/kp) 仍约为 4,214。\n从高于该值的初始 4,481 出发，当前参数无法降至观测低点。22.6–314.4 h 之间的谷底时刻缺少观测约束。'),
-            ('实际窗口与条件 profile','最佳 kBF=0.006976 h⁻¹ 时，a–h 最后观测时的模拟 CB 已比峰值低约 79%–99%。小 kBF=8.55×10⁻⁵ 时下降约 2%–5%。\n将 kBF 固定为 0.00464 或 0.0100 并重优化其余参数，SSE 为 0.8871 或 0.7208，同时 n 变为 2.49 或 2.25。'),
-            ('仍待解决','i 仅有初值和约 22.7 h 的一个点。其 θ、洗脱后衰减及再增长均缺乏可靠约束。g、h 的长缺口同样限制恢复时间判断。\n十起点中最佳参数未触界，但动态自由 Hill 有五次达到优化预算上限。独立 PK 或完整逐时计数仍是机制检验所需证据。')]
+        notes = comparison_notes(summary, params, residuals)
         for i,(heading,body) in enumerate(notes):
             y=.835-i*.135
             fig.text(.06,y,heading,fontsize=14,color=DARK,weight='bold')
