@@ -1,0 +1,7 @@
+parameter,value,unit,status
+kEF,3.5e-06,h^-1,fixed
+kFE,1.25,h^-1,fixed
+kFB,0.21,h^-1,fixed
+VI,0.004629,uL,fixed
+VE,250,uL,fixed
+kBF,0.00715547505854946,h^-1,shared_fit

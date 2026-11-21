@@ -1,6 +1,6 @@
 # Fig. 3 九条件模型比较
 
-138 个可辨观测中，动态 CB 联合自由 Hill 得到最低训练 SSE 0.465522。固定平台下同一杀伤形式的 SSE 为 1.949370。两者相差 1.483848，差额的 84.3% 来自 h、g、f 三个面板。全部数值与曲线来自 `pkpd-fig3-analysis@dfcfeaf` 的 full 归档。逐条核对了观测时间、细胞数、残差、分面板及总 SSE。[汇总 PDF](fig3_full_comparison.pdf) · [原始选点](../../../fig3/point_audit.png) · [归档总表](../full/summary.csv)
+138 个可辨观测中，动态 CB 联合自由 Hill 得到最低训练 SSE 0.465522。固定平台下同一杀伤形式的 SSE 为 1.949370。两者相差 1.483848，差额的 84.3% 来自 h、g、f 三个面板。全部数值与曲线来自 `pkpd-fig3-analysis@dfcfeaf` 的 full 归档。逐条核对了观测时间、细胞数、残差、分面板及总 SSE。[汇总 PDF](fig3_full_comparison.pdf) · [原始选点](https://github.com/RainaYuWang/dox-pkpd/blob/4bfef0f4892ef1ed5e98c3c0bee5fd57cc887879/fig3/point_audit.png) · [归档总表](../full/summary.csv)
 
 ## 共享参数与最优解触界
 

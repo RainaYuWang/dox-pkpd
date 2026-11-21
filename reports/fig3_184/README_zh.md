@@ -2,7 +2,7 @@
 
 SUM-149PT 的九个剂量和暴露时长组合均以给药为 0 h、以实测首点固定 N₀。保留原有 138 条数字化记录，在 1250 nM 的 g、h、i 各增加 11、15、20 条手动读数。九组分别有 12、13、13、19、21、23、30、31、22 个点。i 组观测止于 509 h。新增记录使用截图中已标记的近似时间和细胞数。[184 点](../../fig3/observations.csv) · [新增 46 点](../../fig3/manual_points.csv) · [选点核对图](../../fig3/point_audit.png) · [论文、坐标和模型说明](../../fig3/README_zh.md)
 
-[中文汇总 PDF](comparison/fig3_full_comparison.pdf) · [完整参数精度](full/parameters.csv) · [逐点预测与残差](full/residuals.csv) · [旧版 138 点报告及其输入版本](https://github.com/RainaYuWang/dox-pkpd/tree/4bfef0f4892ef1ed5e98c3c0bee5fd57cc887879/reports/fig3)
+[最终模型的完整 CB(t) 和 PK 参数](cb_input/README.md) · [中文汇总 PDF](comparison/fig3_full_comparison.pdf) · [完整参数精度](full/parameters.csv) · [逐点预测与残差](full/residuals.csv) · [旧版 138 点报告及其输入版本](https://github.com/RainaYuWang/dox-pkpd/tree/4bfef0f4892ef1ed5e98c3c0bee5fd57cc887879/reports/fig3)
 
 ## 九种模型
 

@@ -1,4 +1,18 @@
-# SUM-149PT：联合调整 PK 参数的直接 PK–PD 模型
+# 历史分析索引
+
+[当前首页](README.md) · [184 点最终结果](reports/fig3_184/README_zh.md) · [下一组的 CB 输入](reports/fig3_184/cb_input/README.md)
+
+| 阶段 | 数据与结果 |
+| --- | --- |
+| Fig. 3 初版，138 点 | [当时的观测 CSV](https://github.com/RainaYuWang/dox-pkpd/blob/4bfef0f4892ef1ed5e98c3c0bee5fd57cc887879/fig3/observations.csv) · [当时的九模型比较](https://github.com/RainaYuWang/dox-pkpd/blob/4bfef0f4892ef1ed5e98c3c0bee5fd57cc887879/reports/fig3/comparison/README_zh.md) |
+| Fig. 4 三个处理条件与补充 Fig. S3 对照 | [Fig. 4 选点](reports/fig4/fig4_selected_points.png) · [Fig. S3 选点](reports/fig4/figS3_selected_points.png) · [早期 quick/full](reports/full_vs_quick_2026-11-11.md) |
+| D 和固定 PK 敏感性 | [D 基线](reports/model_d_results.md) · [敏感性](reports/model_d_sensitivity_results.md) |
+| 剂量、饱和、延迟诊断 | [分剂量 β](reports/model_d_dose_beta_results.md) · [饱和](reports/model_d_saturation_results.md) · [两阶段延迟](reports/model_d_delay_results.md) |
+| 时间形式 A/B | [已完成的 A/B 结果](reports/time_form_results.md) · [论文定义核查](reports/paper_definition_audit.md) |
+
+不同阶段使用的面板、观测数和约束各异。以下方法说明属于早期 Fig. 4 三组分析。
+
+## Fig. 4 直接 PK–PD 模型
 
 ## 运行
 
