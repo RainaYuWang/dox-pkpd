@@ -11,7 +11,7 @@ from matplotlib import font_manager
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
-from matplotlib.ticker import MaxNLocator, FuncFormatter
+from matplotlib.ticker import FuncFormatter
 
 ROOT = Path(__file__).resolve().parents[1]
 FULL = ROOT / 'reports/fig3_184/full'
@@ -83,7 +83,9 @@ def tables(summary, params, bounds):
         shared = [f'{p[k]:.5g}' if k in p else '—' for k in PARAMS]
         if index % 3 == 1:
             shared[4] = '1 fixed'
-        if 3 <= index < 6:
+        if index < 3:
+            shared[5] = '0（平台推导）'
+        elif index < 6:
             shared[5] = '0 fixed'
         main.append([MODEL_NAMES[index], r['free_parameters'], f"{float(r['SSE']):.6f}",
                      *shared, '、'.join(bounds[r['model']]) or '无'])
@@ -114,7 +116,20 @@ def table(fig, rect, headers, values, widths=None):
 
 def figure_grid(title, subtitle, ids, labels, metric, data, observations):
     fig = sheet(title, subtitle)
-    axes = fig.subplots(3, 3)
+    axes = fig.subplots(3, 3, sharex=True, sharey=True)
+    # The same metric uses the same limits and ticks throughout the 184-point comparison.
+    x_ticks = np.arange(0, 751, 150)
+    y_ticks = {
+        'N': np.arange(0, 40001, 10000),
+        'scaled_residual': np.linspace(-.8, .8, 5),
+        'CB_nM': np.arange(0, 1001, 200),
+        'kill_h_inv': np.linspace(0, .04, 5),
+    }[metric]
+    first = axes[0, 0]
+    first.set(xticks=x_ticks, xlim=(x_ticks[0], x_ticks[-1]),
+              yticks=y_ticks, ylim=(y_ticks[0], y_ticks[-1]))
+    if metric == 'N':
+        first.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f'{v/1000:g}'))
     fig.subplots_adjust(left=.075, right=.977, bottom=.10, top=.79, wspace=.24, hspace=.54)
     if metric == 'scaled_residual':
         legend = [Line2D([], [], color=c, marker=m, ls='none', label=l)
@@ -125,20 +140,14 @@ def figure_grid(title, subtitle, ids, labels, metric, data, observations):
         legend.append(Line2D([], [], marker='o', linestyle='none', color='white', markerfacecolor='black',
                              markeredgecolor='white', markersize=7, label='拟合使用的观测'))
     legend += [Line2D([], [], color='#566775', ls=':', label='洗脱'),
-               Patch(facecolor=GAP, label='缺少可辨观测 · 模型外推区')]
+               Patch(facecolor=GAP, label='末次观测后 · 外推区')]
     fig.legend(handles=legend, loc='upper left', bbox_to_anchor=(.055,.887),
                ncol=len(legend), frameon=False, fontsize=10)
     for j, ax in enumerate(axes.flat, 1):
         obs = observations[j]
         x = column(obs, 'time_h')
         wash = int(obs[0]['wash_h'])
-        limit = 720 if j == 9 else x[-1]*1.012
-        if j == 9:
-            left, right = x[-1], limit
-        else:
-            left = right = None
-        if left is not None:
-            ax.axvspan(left, right, color=GAP, zorder=0)
+        ax.axvspan(x[-1], x_ticks[-1], color=GAP, zorder=0)
         ax.axvline(wash, color='#526573', lw=1.2, ls=':', zorder=1)
         if metric == 'scaled_residual':
             ax.axhline(0, lw=.8, color='#84939e')
@@ -147,42 +156,22 @@ def figure_grid(title, subtitle, ids, labels, metric, data, observations):
             xx, yy = column(series, 'time_h'), column(series, metric)
             if metric == 'scaled_residual':
                 ax.scatter(xx, yy, color=color, s=14, marker=marker, zorder=3)
-            elif left is None:
-                ax.plot(xx, yy, color=color, lw=1.8)
             else:
-                for mask, style in [(xx <= left,'-'), ((xx >= left) & (xx <= right),'--'),
-                                    (xx >= right,'-')]:
-                    ax.plot(xx[mask], yy[mask], color=color, ls=style, lw=1.8)
+                ax.plot(xx, yy, color=color, lw=1.8)
         if metric == 'N':
             ax.scatter(x, column(obs, 'cells'), s=18, facecolor='#181b20', edgecolor='white',
-                       linewidth=.55, zorder=5)
-            peak = max(np.nanmax(column(data[m,j], 'N')) for m in (3,6,7,8,9))
-            ax.set_ylim(0, 1.13*max(peak, max(column(obs,'cells'))))
-        elif metric == 'scaled_residual':
-            scale = max(max(abs(column(data[m,j], metric))) for m in range(1,10))
-            ax.set_ylim(-1.2*scale, 1.2*scale)
-        else:
-            ax.set_ylim(bottom=0)
-        # Label only the actual unrecoverable spans. Ordinary daily samples remain visible.
-        if left is not None:
-            ax.text((left+right)/2, .94, '模型外推', transform=ax.get_xaxis_transform(),
-                    ha='center', va='top', fontsize=9, color='#45596a')
+                       linewidth=.55, zorder=5, clip_on=False)
         ax.set_title(f"{LETTERS[j-1]}   {obs[0]['dose_nM']} nM · {wash} h · {len(x)} 点",
                      fontsize=12, loc='left', color=DARK, weight='bold', pad=6)
-        ax.set_xlim(-.015*limit, limit)
-        ax.xaxis.set_major_locator(MaxNLocator(5))
-        ax.yaxis.set_major_locator(MaxNLocator(5))
-        if metric == 'N':
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f'{v/1000:g}'))
         ax.grid(axis='y', color='#d4dce2', lw=.5, zorder=0)
         ax.spines[['top','right']].set_visible(False)
         ax.spines[['bottom','left']].set_color('#93a2ac')
-        ax.tick_params(labelsize=9, length=3)
+        ax.tick_params(labelsize=9, length=3, labelbottom=True, labelleft=True)
     ylabels = {'N':'细胞数（千个）','scaled_residual':'归一化残差（预测 − 观测）',
                'CB_nM':'结合药物 CB（nM）','kill_h_inv':'有效杀伤率（每小时）'}
     fig.supylabel(ylabels[metric], x=.012, fontsize=12)
     fig.supxlabel('给药后时间（h）', y=.056, fontsize=12)
-    fig.text(.06,.022,'g、h、i 含手动标记的近似读数。i 的观测止于 509 h，灰色为外推区，曲线只画到最后一个输入点。',fontsize=10,color=DARK)
+    fig.text(.06,.022,'九个面板共用相同刻度。灰色表示本组末次观测之后，各组曲线止于观测窗口。g、h、i 含手动读数，i 止于 509 h。',fontsize=10,color=DARK)
     return fig
 
 
@@ -238,7 +227,7 @@ def main():
         fig.text(.06,.26,'平台值由固定参考 PK 和暴露时长解析给出。固定 kEF=3.5×10⁻⁶、kFE=1.25、kFB=0.21 h⁻¹，VE=250、VI=0.004629 µL。')
         fig.text(.06,.21,'仅列最优解的触界情况。近界定义沿用归档的对数距离 ≤0.01。表内所列 θ 上界均为 10⁸ cells。')
         fig.text(.06,.15,'各组以首观测初始化 N，并以本组最大观测细胞数缩放残差。后续表和图均使用同一批数据。')
-        fig.text(.06,.10,'固定平台直接代入常数 CB，所以该模型没有 kBF 参数。零解离模型则从给药起计算 CB(t)，取 kBF=0。')
+        fig.text(.06,.10,'平台值取自 kBF=0 时的最终结合浓度，从首点起使用该常数。动态零解离也固定 kBF=0，保留 CB 从零建立的过程。')
         starts = column(read(FULL/'dynamic_hill_starts.csv'), 'SSE')
         fig.text(.06,.05,f'动态自由 Hill 的 {len(starts)} 个联合起点中，{sum(starts < min(starts)+1e-5)} 次达到最低 SSE（容差 10⁻⁵），其余起点最高 SSE 为 {max(starts):.4f}。')
         pdf.savefig(fig); plt.close(fig)
@@ -250,9 +239,9 @@ def main():
         fig.text(.06,.04,'i 有 22 个点（含固定初值），其中 20 个是手动近似读数。509 h 以后没有用于拟合的观测。')
         pdf.savefig(fig); plt.close(fig)
         sets = [
-            ('fit_cb','三种 CB 输入下的拟合曲线','三条曲线均使用自由 Hill；共享参数及分组 θ 已各自联合估计。',
+            ('fit_cb','三种 CB 输入下的拟合曲线','三条曲线均使用自由 Hill。每个面板横轴为 0–750 h，纵轴为 0–40,000 个细胞。',
              [3,6,9],['固定平台','动态 · kBF=0','动态 · 自由 kBF'],'N'),
-            ('fit_kill','三种杀伤函数下的拟合曲线','三条曲线均使用动态 CB；每个模型独立估计共享 kBF。',
+            ('fit_kill','三种杀伤函数下的拟合曲线','三种杀伤函数分别估计共享 kBF。每个面板横轴为 0–750 h，纵轴为 0–40,000 个细胞。',
              [7,8,9],['线性','Hill · n=1','Hill · 自由 n'],'N'),
             ('cb','结合药物的时间过程','自由 Hill 三模型的归档 CB 输入。固定平台同时给出不可逆渐近参考值。',
              [3,6,9],['固定平台','动态 · kBF=0','动态 · 自由 kBF'],'CB_nM'),
@@ -274,6 +263,7 @@ def main():
             y=.835-i*.135
             fig.text(.06,y,heading,fontsize=14,color=DARK,weight='bold')
             fig.text(.06,y-.028,body,fontsize=11,va='top',linespacing=1.55,color=DARK)
+        fig.text(.06,.023,'若要求九组 CB 从峰值至末次观测均下降 ≤5%，完整 PK 对应 kBF 约 ≤8.51×10⁻⁵ h⁻¹。自由 Hill 的估计值约为其 84 倍。',fontsize=10,color=DARK)
         pdf.savefig(fig); plt.close(fig)
 
 
